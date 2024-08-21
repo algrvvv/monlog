@@ -1,0 +1,38 @@
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+#status {
+    font-size: 20vh;
+    margin-top: 25vh;
+    animation-name: transition;
+    animation-duration: 10s;
+    animation-iteration-count: infinite;
+}
+
+#error {
+    margin: 1vh;
+    font-size: 4vh;
+    color: rgb(109, 105, 105);
+}
+
+@keyframes transition {
+    0% {
+        color: #833ab4;
+    }
+    25% {
+        color: #fd1d1d;
+    }
+    50% {
+        color: #fcb045;
+    }
+    75% {
+        color: #fd1d1d;
+    }
+    100% {
+        color: #833ab4;
+    }
+}
