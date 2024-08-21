@@ -1,0 +1,64 @@
+/* Настройка темы подсветки */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Настройка CodeMirror, чтобы он занимал всю страницу */
+#logs {
+    height: 100%;
+    width: 100%;
+    border: none; /* Убираем границу, если она есть */
+}
+
+/* Размер блока */
+.CodeMirror{
+    height: 100vh !important;
+}
+
+/* Настройка цвета номеров строк */
+.cm-s-default .CodeMirror-gutter {
+    background: #f0f0f0; /* Цвет фона для области номеров строк */
+    color: #333; /* Цвет текста номеров строк */
+}
+
+/* Настройка цвета фона редактора */
+.cm-s-default .CodeMirror {
+    background: #ffffff; /* Цвет фона для редактора */
+    color: #000000; /* Цвет текста в редакторе */
+}
+
+/* Настройка цвета строк, которые изменяются при выборе темы */
+.cm-s-default .CodeMirror-line {
+    background: #ffffff; /* Цвет фона для строк */
+}
+
+.cm-s-default .cm-date {
+    color: rgb(109, 105, 105); /* Цвет для даты */
+}
+
+.cm-s-default .cm-time {
+    color: rgb(109, 105, 105); /* Цвет для времени #0000ff */
+}
+
+.cm-s-default .cm-error {
+    color: #ff0000; /* Цвет для ошибок (красный) */
+}
+
+.cm-s-default .cm-warn {
+    color: #ffa500; /* Цвет для предупреждений (оранжевый) */
+}
+
+.cm-s-default .cm-info {
+    color: #0000ff; /* Цвет для информационных и отладочных сообщений (синий) */
+}
+
+.cm-s-default .cm-log-level {
+    color: #008000; /* Цвет для других уровней логирования (зеленый) */
+}
+
+.cm-s-default .cm-string {
+    color: #000000; /* Цвет для сообщений и других токенов */
+}
