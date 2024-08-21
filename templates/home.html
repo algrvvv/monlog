@@ -1,0 +1,23 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <title>Select server</title>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Select server for check logs:</h1>
+        <div class="servers-wrapper">
+            {{range .}}
+                <a class="server-link" href="/logs/{{.ID}}">{{.Addr}}</a>
+            {{else}}
+                <span>No servers available</span>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
