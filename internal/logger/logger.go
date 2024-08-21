@@ -65,7 +65,7 @@ func replaceAttr(_ []string, a slog.Attr) slog.Attr {
 	return a
 }
 
-var Logger *slog.Logger
+var logger *slog.Logger
 
 func NewLogger(logfile string) error {
 	file, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -74,7 +74,6 @@ func NewLogger(logfile string) error {
 	}
 
 	opts := &slog.HandlerOptions{
-		AddSource:   true,
 		ReplaceAttr: replaceAttr,
 	}
 
@@ -83,11 +82,11 @@ func NewLogger(logfile string) error {
 
 	buildinfo, _ := debug.ReadBuildInfo()
 
-	logger := slog.New(slogmulti.Fanout(
+	log := slog.New(slogmulti.Fanout(
 		fileHandler, consoleHandler,
 	))
 
-	Logger = logger.With(
+	logger = log.With(
 		slog.Group("program_info",
 			slog.Int("pid", os.Getpid()),
 			slog.String("go_version", buildinfo.GoVersion),
@@ -95,4 +94,22 @@ func NewLogger(logfile string) error {
 	)
 
 	return nil
+}
+
+func Info(msg string, args ...any) {
+	logger.Info(msg, args...)
+}
+
+func Debug(msg string, args ...any) {
+	logger.Debug(msg, args...)
+}
+
+func Warn(msg string, args ...any) {
+	logger.Warn(msg, args...)
+}
+
+func Error(msg string, err error, args ...any) {
+	e := xerrors.New(err)
+	args = append(args, slog.Any("error", e))
+	logger.Error(msg, args...)
 }
