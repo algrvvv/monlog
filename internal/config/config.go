@@ -20,6 +20,8 @@ type ServerConfig struct {
 	LogDir    string   `yaml:"log_dir"`
 	StartLine string   `yaml:"start_line"`
 	ChatIDs   []string `yaml:"chat_ids"`
+	Notify    bool     `yaml:"notify"`
+	IsLocal   bool     `yaml:"is_local"`
 }
 
 type Keywords struct {
