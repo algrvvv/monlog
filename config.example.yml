@@ -1,7 +1,8 @@
 app:
-  tg_bot_token: YOUR_TG_BOT_TOKEN
-  path_to_id_rsa: path/to/your/id_rsa
-  port: 8080
+  tg_bot_token: YOUR_TG_BOT_TOKEN       # токен вашего тг бота
+  path_to_id_rsa: path/to/your/id_rsa   # путь до вашего id_rsa
+  port: 8080                            # порт веб сервера
+  max_local_log_size_mb: 10             # максимальный размер локально сохранненных логгов
 
 servers:
   - host: 127.0.0.1                     # хост для подключения

@@ -8,9 +8,10 @@ import (
 )
 
 type AppConfig struct {
-	TGBotToken  string `yaml:"tg_bot_token"`
-	PathToIDRSA string `yaml:"path_to_id_rsa"`
-	Port        int    `yaml:"port"`
+	TGBotToken        string `yaml:"tg_bot_token"`
+	PathToIDRSA       string `yaml:"path_to_id_rsa"`
+	Port              int    `yaml:"port"`
+	MaxLocalLogSizeMB int    `yaml:"max_local_log_size_mb"`
 }
 
 type ServerConfig struct {
