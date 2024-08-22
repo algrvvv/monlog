@@ -79,12 +79,30 @@ editor.on('change', function () {
     autoScrollBottom()
 })
 
+function addLogLinesToStart(lines) {
+    const currentContent = editor.getValue();
+    const newContent = lines.join('\n') + "\n" + currentContent;
+    editor.setValue(newContent);
+    autoScrollBottom()
+    // editor.scrollTo(0,0);
+}
+
 function addLogLine(newLog) {
     editor.replaceRange("\n" + newLog, CodeMirror.Pos(editor.lineCount()));
 }
 
 const urlParts = window.location.href.split("/");
 const servID = urlParts[urlParts.length - 1];
+
+const axiosURL = `http://${location.host}/api/v1/logs/prev/${servID}`
+console.log(axiosURL)
+axios.get(axiosURL).then(res => {
+    console.log(res)
+    addLogLinesToStart(res.data.lines)
+}).catch(err => {
+    console.error(err)
+})
+
 
 const wsURL = `ws://${location.host}/ws/${servID}`;
 console.log(wsURL)
