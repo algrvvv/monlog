@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/gorilla/websocket"
 
@@ -25,7 +24,6 @@ var (
 			return true
 		},
 	}
-	Mu sync.Mutex
 )
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {

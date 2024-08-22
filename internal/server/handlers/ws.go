@@ -44,7 +44,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		for {
 			_, _, err = conn.ReadMessage()
 			if err != nil {
-				logger.Error(err.Error(), err)
+				logger.Warn(err.Error(), err)
 				break
 			}
 		}
