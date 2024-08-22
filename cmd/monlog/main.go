@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/algrvvv/monlog/internal"
+	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/server"
-	"log"
 )
 
 func main() {
@@ -20,15 +25,36 @@ func main() {
 		log.Fatal(err)
 	}
 
+	serv, serverLoggers := server.NewServer()
+	signs := make(chan os.Signal, 1)
+	signal.Notify(signs, os.Interrupt, syscall.SIGTERM)
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for _, sl := range serverLoggers {
+		wg.Add(1)
+		go sl.StartLogging(ctx, &wg)
+	}
+
 	go func() {
-		for i, s := range config.Cfg.Servers {
-			go internal.ConnectAndReadLogs(i, s)
+		logger.Info(fmt.Sprintf("Starting server on :%d", config.Cfg.App.Port))
+		if err = serv.ListenAndServe(); err != nil {
+			logger.Error(err.Error(), err)
 		}
 	}()
 
-	serv := server.NewServer()
-	logger.Info(fmt.Sprintf("Starting server on :%d", config.Cfg.App.Port))
-	if err = serv.ListenAndServe(); err != nil {
+	<-signs
+	logger.Info("Shutting down...")
+
+	cancel()
+	wg.Wait()
+
+	if err = serv.Shutdown(ctx); err != nil {
 		logger.Error(err.Error(), err)
+		return
 	}
+
+	logger.Info("Shutdown server complete")
 }

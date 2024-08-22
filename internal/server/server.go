@@ -2,14 +2,22 @@ package server
 
 import (
 	"fmt"
-	"github.com/algrvvv/monlog/internal/server/handlers"
-	"github.com/algrvvv/monlog/internal/server/middlewares"
 	"net/http"
 
+	"github.com/algrvvv/monlog/internal/app"
 	"github.com/algrvvv/monlog/internal/config"
+	"github.com/algrvvv/monlog/internal/server/handlers"
+	"github.com/algrvvv/monlog/internal/server/middlewares"
 )
 
-func NewServer() *http.Server {
+func NewServer() (*http.Server, []*app.ServerLogger) {
+	servers := config.Cfg.Servers
+	servLoggers := make([]*app.ServerLogger, len(servers))
+	for i, server := range servers {
+		logger := app.NewServerLogger(i, server)
+		servLoggers[i] = logger
+	}
+
 	server := http.NewServeMux()
 
 	server.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -26,12 +34,10 @@ func NewServer() *http.Server {
 	})
 	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
-	ws := http.NewServeMux()
-	ws.HandleFunc("/", handlers.WsHandler)
-	server.Handle("/ws", ws)
+	server.HandleFunc("/ws/", handlers.WsHandler(servLoggers))
 
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Cfg.App.Port),
 		Handler: middlewares.LogRequest(server),
-	}
+	}, servLoggers
 }
