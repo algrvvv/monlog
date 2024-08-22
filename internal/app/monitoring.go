@@ -26,12 +26,19 @@ type ServerLogger struct {
 	pipe    io.Reader
 	wsConns []*websocket.Conn
 	wsMutex sync.Mutex
+	File    *LogFile
 }
 
 func NewServerLogger(id int, config config.ServerConfig) *ServerLogger {
+	file, err := NewLogFile(config.Host)
+	if err != nil {
+		logger.Error("Failed to create and open local clone log file: %v", err)
+		return nil
+	}
 	return &ServerLogger{
 		ID:     id,
 		config: config,
+		File:   file,
 	}
 }
 
@@ -147,26 +154,29 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 			if scanner.Scan() {
 				line := scanner.Text()
 				s.broadcastLine(line, currentLine)
+				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
+				if err != nil {
+					logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				}
 				currentLine++
 			} else {
 				if scanner.Err() != nil {
 					logger.Error("Scanner error", err, slog.Any("server", s.config.Host))
 				}
-				break
 
 				// reconnect here:
-				//s.Close()
-				//if err = s.reconnect(ctx); err != nil {
-				//	logger.Error(err.Error(), err, slog.Any("server", s.config.Host))
-				//	return
-				//}
-				//
-				//if err = s.session.Start(cmd); err != nil {
-				//	logger.Error("Command start from reconnect failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-				//	return
-				//}
-				//output, _ := s.session.StdoutPipe()
-				//scanner = bufio.NewScanner(output)
+				s.Close()
+				if err = s.reconnect(ctx); err != nil {
+					logger.Error(err.Error(), err, slog.Any("server", s.config.Host))
+					return
+				}
+
+				if err = s.session.Start(cmd); err != nil {
+					logger.Error("Command start from reconnect failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+					return
+				}
+				output, _ := s.session.StdoutPipe()
+				scanner = bufio.NewScanner(output)
 			}
 		}
 	}
@@ -176,12 +186,12 @@ func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
 
-	fmt.Printf("[COPY_%d] -%d. %s\n", s.ID, currentLine, line)
+	fmt.Printf("[COPY_%d] %d. %s\n", s.ID, currentLine, line)
 
 	for _, conn := range s.wsConns {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
 		if err != nil {
-			logger.Error(err.Error(), err)
+			logger.Warn(err.Error(), err)
 			conn.Close()
 			s.RemoveWSConnection(conn)
 		}
