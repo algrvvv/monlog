@@ -13,9 +13,12 @@ html, body {
     border: none; /* Убираем границу, если она есть */
 }
 
-/* Размер блока */
-.CodeMirror{
+/* Основные настройки блока */
+.CodeMirror {
     height: 100vh !important;
+    font-size: 18px !important;
+    line-height: 2;
+    font-family: "JetBrains Mono", monospace;
 }
 
 /* Настройка цвета номеров строк */

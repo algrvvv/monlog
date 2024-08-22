@@ -83,7 +83,10 @@ function addLogLine(newLog) {
     editor.replaceRange("\n" + newLog, CodeMirror.Pos(editor.lineCount()));
 }
 
-const wsURL = `ws://${location.host}/ws?serv=${0}`; // TODO НЕ ЗАБЫТЬ СДЕЛАТЬ ДИНАМИЧЕСКОЕ ПОДКЛЮЧЕНИЕ!!!
+const urlParts = window.location.href.split("/");
+const servID = urlParts[urlParts.length - 1];
+
+const wsURL = `ws://${location.host}/ws/${servID}`;
 console.log(wsURL)
 const socket = new WebSocket(wsURL);
 
