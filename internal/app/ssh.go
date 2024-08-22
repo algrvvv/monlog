@@ -2,6 +2,7 @@ package app
 
 import (
 	"os"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -21,7 +22,9 @@ func NewSSHConfig(idRSA, user string) (*ssh.ClientConfig, error) {
 		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
+			//метод подключения по паролю: ssh.Password("password here"),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         5 * time.Second,
 	}, nil
 }
