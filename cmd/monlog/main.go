@@ -49,7 +49,15 @@ func main() {
 	logger.Info("Shutting down...")
 
 	cancel()
-	wg.Wait()
+	// wg.Wait()
+
+	logger.Info("Start Deleting local logs")
+	for _, sl := range serverLoggers {
+		if err = sl.File.CLoseAndRemove(); err != nil {
+			logger.Error(err.Error(), err)
+		}
+	}
+	logger.Info("Start Deleting all local logs")
 
 	if err = serv.Shutdown(ctx); err != nil {
 		logger.Error(err.Error(), err)
