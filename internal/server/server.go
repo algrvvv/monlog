@@ -29,9 +29,7 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	server.HandleFunc("GET /logs/{id}", handlers.GetLogsByID)
 
 	v1 := http.NewServeMux()
-	v1.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello World!"))
-	})
+	v1.HandleFunc("GET /logs/prev/{id}", handlers.APIGetLinesByID(servLoggers))
 	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
 	server.HandleFunc("/ws/", handlers.WsHandler(servLoggers))
