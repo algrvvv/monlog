@@ -12,6 +12,7 @@ type AppConfig struct {
 	PathToIDRSA       string `yaml:"path_to_id_rsa"`
 	Port              int    `yaml:"port"`
 	MaxLocalLogSizeMB int    `yaml:"max_local_log_size_mb"`
+	NumberRowsToLoad  int    `yaml:"number_rows_to_load"`
 }
 
 type ServerConfig struct {

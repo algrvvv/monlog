@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/algrvvv/monlog/internal/app"
+	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/utils"
 )
@@ -25,7 +26,8 @@ func APIGetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			utils.SendErrorJSON(w, "Ошибка получения данных", http.StatusBadGateway)
 			return
 		}
-		content := serverLogger.File.ReadLines(total-100, total)
+		rows := config.Cfg.App.NumberRowsToLoad
+		content := serverLogger.File.ReadLines(total-rows, total)
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
