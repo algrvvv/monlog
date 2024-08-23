@@ -20,7 +20,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			return
 		}
 
-		loggerIndex, err := strconv.Atoi(r.URL.Path[len("/ws/"):])
+		loggerIndex, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil || loggerIndex > len(serverLoggers) || serverLoggers[loggerIndex] == nil {
 			logger.Error(err.Error(), err)
 			//utils.RenderError(w, "Передан некорректный айди сервера", http.StatusNotFound)
@@ -40,6 +40,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		logger.Info("got server: ", slog.Any("server", serverLoggers[loggerIndex]))
 		servLogger.AppendWSConnection(conn)
 		defer servLogger.RemoveWSConnection(conn)
+		defer conn.Close()
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("Connected to server"))
 
 		for {

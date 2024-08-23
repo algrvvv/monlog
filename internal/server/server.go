@@ -32,7 +32,7 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	v1.HandleFunc("GET /logs/prev/{id}", handlers.APIGetLinesByID(servLoggers))
 	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
-	server.HandleFunc("/ws/", handlers.WsHandler(servLoggers))
+	server.HandleFunc("/ws/{id}", handlers.WsHandler(servLoggers))
 
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Cfg.App.Port),

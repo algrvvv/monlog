@@ -49,21 +49,24 @@ func (s *ServerLogger) AppendWSConnection(conn *websocket.Conn) {
 	defer s.wsMutex.Unlock()
 
 	s.wsConns = append(s.wsConns, conn)
+	logger.Info("new ws connection saved", slog.Any("connections", s.wsConns))
 }
 
 // RemoveWSConnection метод для удаления конкретнного вебсокет соединения
 func (s *ServerLogger) RemoveWSConnection(conn *websocket.Conn) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
+
 	for i, c := range s.wsConns {
 		if c == conn {
-			s.wsConns = append(s.wsConns[:i], s.wsConns[i:+1]...)
+			// ХЫХВАХЫВХА НУ БЛЯТЬ... СУКА ИСКАЛ НЕСКОЛЬКО ДНЕЙ БЛЯДСКУЮ ОШИБКУ...
+			// НАДО ЖЕ БЫЛО НАПИСАТЬ s.wsConns[i:+1] вмето s.wsConns[i+1:] D:
+			// СПАСИБО ЗА ЧАСЫ ЭТОГО БЛЯДСКОГО ДЕБАГА ╭∩╮( •̀_•́ )╭∩╮
+			s.wsConns = append(s.wsConns[:i], s.wsConns[i+1:]...)
 			break
 		}
 	}
-	if err := conn.Close(); err != nil {
-		logger.Error("Failed to close websocket connection: "+err.Error(), err)
-	}
+	logger.Info("ws connection removed", slog.Any("connections", s.wsConns))
 }
 
 // Close метод, который закрывает соединение с удаленным сервером
@@ -164,6 +167,7 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 		default:
 			if scanner.Scan() {
 				line := scanner.Text()
+				fmt.Printf("[GET LINE FROM SERVER]; %d - %s\n", currentLine, line)
 				s.broadcastLine(line, currentLine)
 				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
 				if err != nil {
@@ -200,12 +204,11 @@ func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 
 	fmt.Printf("[COPY_%d] %d. %s\n", s.ID, currentLine, line)
 
+	logger.Info("broadcasting line", slog.Any("connections", s.wsConns))
 	for _, conn := range s.wsConns {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
 		if err != nil {
 			logger.Warn(err.Error(), slog.Any("warn", err))
-			conn.Close()
-			s.RemoveWSConnection(conn)
 		}
 	}
 }
