@@ -1,21 +1,23 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"net/http"
-
 	"github.com/algrvvv/monlog/internal/app"
 	"github.com/algrvvv/monlog/internal/config"
+	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/server/handlers"
 	"github.com/algrvvv/monlog/internal/server/middlewares"
+	"net/http"
 )
 
 func NewServer() (*http.Server, []*app.ServerLogger) {
 	servers := config.Cfg.Servers
 	servLoggers := make([]*app.ServerLogger, len(servers))
 	for i, server := range servers {
-		logger := app.NewServerLogger(i, server)
-		servLoggers[i] = logger
+		serverLogger := app.NewServerLogger(i, server)
+		servLoggers[i] = serverLogger
 	}
 
 	server := http.NewServeMux()
@@ -38,4 +40,20 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 		Addr:    fmt.Sprintf(":%d", config.Cfg.App.Port),
 		Handler: middlewares.LogRequest(server),
 	}, servLoggers
+}
+
+func RunServer(serv *http.Server, ctx context.Context) {
+	logger.Info(fmt.Sprintf("Starting server on :%d", config.Cfg.App.Port))
+	if err := serv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+		logger.Error(err.Error(), err)
+	}
+
+	<-ctx.Done()
+
+	logger.Info("Shutting down server...")
+	if err := serv.Shutdown(ctx); err != nil {
+		logger.Error(err.Error(), err)
+		return
+	}
+	logger.Info("Shutdown server complete")
 }
