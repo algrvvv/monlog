@@ -91,6 +91,33 @@ function addLogLine(newLog) {
     editor.replaceRange("\n" + newLog, CodeMirror.Pos(editor.lineCount()));
 }
 
+let highlights = [];
+const m = document.getElementById('matches');
+
+function searchAndHighlight(query) {
+    // Очистка предыдущих подсветок
+    highlights.forEach(mark => mark.clear());
+    highlights = [];
+    m.innerHTML = 0;
+
+    if (!query) return; // Выход если запрос пуст
+
+    const cursor = editor.getSearchCursor(query, null, {caseFold: true});
+
+    // Поиск и подсветка всех совпадений
+    while (cursor.findNext()) {
+        const mark = editor.markText(cursor.from(), cursor.to(), {className: "highlight"});
+        highlights.push(mark);
+    }
+
+    m.innerHTML = highlights.length;
+}
+
+const searchInput = document.getElementById('search')
+searchInput.oninput = function () {
+    searchAndHighlight(searchInput.value)
+}
+
 const urlParts = window.location.href.split("/");
 const servID = urlParts[urlParts.length - 1];
 

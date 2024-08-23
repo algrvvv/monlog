@@ -11,18 +11,29 @@
             integrity="sha512-JSCFHhKDilTRRXe9ak/FJ28dcpOJxzQaCd3Xg8MyF6XFjODhy/YMCM8HW0TFDckNHWUewW+kfvhin43hKtJxAw=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/log.css">
     <title>Logs</title>
 </head>
 
 <body>
-    <textarea id="logs" class="code-editor" name="code"></textarea>
+<div class="log-wrapper">
+    <div class="helpers">
+        <input class="search-in-logs" type="text" placeholder="Поиск" id="search" autocomplete="off">
+        <span class="hints">Найдено совпадений: <span id="matches">0</span></span>
+    </div>
+    <div class="editors">
+        <textarea id="logs" class="code-editor" name="code"></textarea>
+    </div>
+</div>
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/mode/simple.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.22addon/search/search.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="/static/js/logs.js"></script>
 </html>
