@@ -19,16 +19,17 @@ import (
 )
 
 type ServerLogger struct {
-	ID      int
-	config  config.ServerConfig
-	client  *ssh.Client
-	session *ssh.Session
-	pipe    io.Reader
-	wsConns []*websocket.Conn
-	wsMutex sync.Mutex
-	File    *LogFile
+	ID      int                 // айди сервера, его индекс в списке всех серверов, включая 0
+	config  config.ServerConfig // конфигурация сервера
+	client  *ssh.Client         // ссш клиент
+	session *ssh.Session        // ссш сессия
+	pipe    io.Reader           // канал для чтения новых логов
+	wsConns []*websocket.Conn   // массив вебсокет соединений, которые должны получить данные
+	wsMutex sync.Mutex          // мьютекс для массива с вебсокетами
+	File    *LogFile            // локальный файл, в котором сохраняется часть логов с сервера
 }
 
+// NewServerLogger метод для создания нового сервера для чтения логов
 func NewServerLogger(id int, config config.ServerConfig) *ServerLogger {
 	file, err := NewLogFile(config.Host)
 	if err != nil {
@@ -42,12 +43,15 @@ func NewServerLogger(id int, config config.ServerConfig) *ServerLogger {
 	}
 }
 
+// AppendWSConnection метод для добавления вебсокет соединения, которому будут отправлятся новые данные
 func (s *ServerLogger) AppendWSConnection(conn *websocket.Conn) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
+
 	s.wsConns = append(s.wsConns, conn)
 }
 
+// RemoveWSConnection метод для удаления конкретнного вебсокет соединения
 func (s *ServerLogger) RemoveWSConnection(conn *websocket.Conn) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
@@ -57,13 +61,18 @@ func (s *ServerLogger) RemoveWSConnection(conn *websocket.Conn) {
 			break
 		}
 	}
+	if err := conn.Close(); err != nil {
+		logger.Error("Failed to close websocket connection: "+err.Error(), err)
+	}
 }
 
+// Close метод, который закрывает соединение с удаленным сервером
 func (s *ServerLogger) Close() {
 	s.client.Close()
 	s.session.Close()
 }
 
+// connect метод для подключения к удаленному серверу
 func (s *ServerLogger) connect() error {
 	sshConfig, err := NewSSHConfig(config.Cfg.App.PathToIDRSA, s.config.User)
 	if err != nil {
@@ -96,6 +105,7 @@ func (s *ServerLogger) connect() error {
 	return nil
 }
 
+// reconnect метод, который пытается переподключиться
 func (s *ServerLogger) reconnect(ctx context.Context) error {
 	s.MultiLog("Attempting to reconnect to remote server...")
 	for {
@@ -116,6 +126,7 @@ func (s *ServerLogger) reconnect(ctx context.Context) error {
 	}
 }
 
+// StartLogging основной метод для работы чтения логгирования
 func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -182,6 +193,7 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
+// broadcastLine метод для обработки новой строки при чтении с лог файла
 func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
@@ -191,7 +203,7 @@ func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 	for _, conn := range s.wsConns {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
 		if err != nil {
-			logger.Warn(err.Error(), err)
+			logger.Warn(err.Error(), slog.Any("warn", err))
 			conn.Close()
 			s.RemoveWSConnection(conn)
 		}

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/algrvvv/monlog/internal/app"
 	"github.com/algrvvv/monlog/internal/logger"
@@ -44,7 +45,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		for {
 			_, _, err = conn.ReadMessage()
 			if err != nil {
-				logger.Warn(err.Error(), err)
+				logger.Warn(err.Error(), slog.Any("warn", err))
 				break
 			}
 		}
