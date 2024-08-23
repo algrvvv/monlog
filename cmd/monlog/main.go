@@ -26,16 +26,16 @@ func main() {
 	}
 
 	serv, serverLoggers := server.NewServer()
-	signs := make(chan os.Signal, 1)
-	signal.Notify(signs, os.Interrupt, syscall.SIGTERM)
 
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	wg := &sync.WaitGroup{}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	for _, sl := range serverLoggers {
 		wg.Add(1)
-		go sl.StartLogging(ctx, &wg)
+		go sl.StartLogging(ctx, wg)
 	}
 
 	go func() {
@@ -45,24 +45,17 @@ func main() {
 		}
 	}()
 
-	<-signs
+	<-sigs
 	logger.Info("Received signal, shutting down...")
 
 	cancel()
-	// wg.Wait()
+	wg.Wait()
 
-	logger.Info("Start Deleting local logs")
-	for _, sl := range serverLoggers {
-		if err = sl.File.CLoseAndRemove(); err != nil {
-			logger.Error(err.Error(), err)
-		}
-	}
-	logger.Info("Start Deleting all local logs")
-
+	logger.Info("Server shutting down...")
 	if err = serv.Shutdown(ctx); err != nil {
 		logger.Error(err.Error(), err)
 		return
 	}
 
-	logger.Info("Shutdown server complete")
+	logger.Info("Server shutdown completed successfully")
 }

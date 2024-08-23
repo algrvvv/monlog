@@ -132,6 +132,15 @@ func (s *ServerLogger) reconnect(ctx context.Context) error {
 // StartLogging основной метод для работы чтения логгирования
 func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer func() {
+		logger.Info("Start delete local log file", slog.Any("server", s.config.Host))
+		err := s.File.CLoseAndRemove()
+		if err != nil {
+			logger.Error("Failed to close log file: "+err.Error(), err)
+		} else {
+			logger.Info("Log file closed and removed successfully")
+		}
+	}()
 
 	err := s.connect()
 	if err != nil {
@@ -139,6 +148,7 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 		return
 	}
 	defer s.client.Close()
+	defer s.session.Close()
 
 	startLine := "1"
 	if s.config.StartLine != "0" {
@@ -150,50 +160,62 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 		logger.Error("Command start failed: "+err.Error(), err, slog.Any("server", s.config.Host))
 		return
 	}
-	defer s.session.Close()
 
 	scanner := bufio.NewScanner(s.pipe)
+	done := make(chan struct{})
 	currentLine, err := strconv.Atoi(s.config.StartLine)
 	if err != nil {
 		logger.Error("Parse start line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
 		return
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Context cancelled", slog.Any("server", s.config.Host))
-			return
-		default:
-			if scanner.Scan() {
-				line := scanner.Text()
-				fmt.Printf("[GET LINE FROM SERVER]; %d - %s\n", currentLine, line)
-				s.broadcastLine(line, currentLine)
-				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
-				if err != nil {
-					logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-				}
-				currentLine++
-			} else {
-				if scanner.Err() != nil {
-					logger.Error("Scanner error", err, slog.Any("server", s.config.Host))
-				}
-
-				// reconnect here:
-				s.Close()
-				if err = s.reconnect(ctx); err != nil {
-					logger.Error(err.Error(), err, slog.Any("server", s.config.Host))
-					return
-				}
-
-				if err = s.session.Start(cmd); err != nil {
-					logger.Error("Command start from reconnect failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-					return
-				}
-				output, _ := s.session.StdoutPipe()
-				scanner = bufio.NewScanner(output)
+	go func() {
+		defer close(done)
+		for scanner.Scan() {
+			line := scanner.Text()
+			s.broadcastLine(line, currentLine)
+			if err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB); err != nil {
+				logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
 			}
+			currentLine++
 		}
+		if err = scanner.Err(); err != nil {
+			logger.Error("Scanner failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+		} else {
+			logger.Info("Scanner finished", slog.Any("server", s.config.Host))
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		logger.Info("Getting signal, stopping session...", slog.Any("server", s.config.Host))
+		if err = s.session.Signal(ssh.SIGTERM); err != nil {
+			logger.Warn("Failed to send SIGTERM to server", slog.Any("server", s.config.Host))
+		}
+
+		select {
+		case <-done:
+			logger.Info("Session closed by SIGTERM", slog.Any("server", s.config.Host))
+		case <-time.After(5 * time.Second):
+			logger.Warn("Session dont closed by SIGTERM, trying SIGKILL...", slog.Any("server", s.config.Host))
+			if err = s.session.Signal(ssh.SIGKILL); err != nil {
+				logger.Error("Failed to send SIGKILL to server", err, slog.Any("server", s.config.Host))
+			}
+
+			// код ниже можно оставить, хотя по итогу на одном из серверов даже через килл процесс не завершался
+			// после завершения программа и проверки этого процесса на сервере - его уже не было
+			// так что оставлять это ожидание я не буду
+
+			// logger.Info("Waiting for session to close", slog.Any("server", s.config.Host))
+			// select {
+			// case <-done:
+			// 	 logger.Info("Session closed by SIGKILL", slog.Any("server", s.config.Host))
+			// case <-time.After(10 * time.Second):
+			//	 logger.Error("Failed to kill session", err, slog.Any("server", s.config.Host))
+			// }
+		}
+	case <-done:
+		logger.Info("Command has been finished successfully", slog.Any("server", s.config.Host))
 	}
 }
 
