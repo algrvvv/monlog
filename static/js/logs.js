@@ -31,7 +31,6 @@ CodeMirror.defineMode("log", function (config, parserConfig) {
     }
 
     function tokenLog(level) {
-        console.log(level)
         if (["ERROR", "FATAL"].includes(level)) {
             return "error"; // Подсвечиваем ошибки
         } else if (["WARN", "WARNING"].includes(level)) {
@@ -145,7 +144,7 @@ socket.onmessage = function (event) {
 }
 
 socket.onerror = function (error) {
-    console.error(error)
+    console.error("connection error", error)
 }
 
 socket.onclose = function (event) {

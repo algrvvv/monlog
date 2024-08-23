@@ -46,7 +46,7 @@ func main() {
 	}()
 
 	<-signs
-	logger.Info("Shutting down...")
+	logger.Info("Received signal, shutting down...")
 
 	cancel()
 	// wg.Wait()
