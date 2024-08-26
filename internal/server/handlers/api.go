@@ -22,7 +22,7 @@ func APIGetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		total, err := serverLogger.File.GetLineCount()
 		logger.Info(fmt.Sprintf("Total lines readed in %s: %d", serverLogger.File.Name(), total))
 		if err != nil {
-			logger.Error(err.Error(), err)
+			logger.Error("Failed to get total lines file: "+err.Error(), err)
 			utils.SendErrorJSON(w, "Ошибка получения данных", http.StatusBadGateway)
 			return
 		}

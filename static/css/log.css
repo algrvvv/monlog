@@ -41,6 +41,7 @@ html, body {
     font-family: "JetBrains Mono", monospace;
     margin: 10px;
     border-radius: 20px;
+    box-shadow: 10px 5px 5px rgba(109, 105, 105, 0.1);
 }
 
 .highlight {
