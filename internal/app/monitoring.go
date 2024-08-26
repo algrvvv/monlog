@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os/exec"
 	"strconv"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ type ServerLogger struct {
 
 // NewServerLogger метод для создания нового сервера для чтения логов
 func NewServerLogger(id int, config config.ServerConfig) *ServerLogger {
-	file, err := NewLogFile(config.Host)
+	file, err := NewLogFile(config.Host, config.Enabled)
 	if err != nil {
 		logger.Error("Failed to create and open local clone log file: %v", err)
 		return nil
@@ -129,18 +130,74 @@ func (s *ServerLogger) reconnect(ctx context.Context) error {
 	}
 }
 
-// StartLogging основной метод для работы чтения логгирования
 func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
+	if !s.config.Enabled {
+		wg.Done()
+		return
+	}
+
+	if s.config.IsLocal {
+		s.startLocalLogging(ctx, wg)
+	} else {
+		s.startRemoteLogging(ctx, wg)
+	}
+}
+
+// startLocalLogging метод для чтения логов с локальных файлов.
+// Почему для локальных логов используется еще один локальный файл для сохранения? зачем дублировать?
+// Это сделано из за того, что владелец файла - программа, которая туда записывает логи, не будет синхронизированна
+// с потоком, который читает оттуда логи. Соответственно, это может повлечь непредсказуемые последствия.
+func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer s.deleteLocalLogs()
+
+	startLine := "1"
+	if s.config.StartLine != "0" {
+		startLine = s.config.StartLine
+	}
+
+	command := fmt.Sprintf("tail -n +%s -f %s", startLine, s.config.LogDir)
+	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	defer func() {
-		logger.Info("Start delete local log file", slog.Any("server", s.config.Host))
-		err := s.File.CLoseAndRemove()
-		if err != nil {
-			logger.Error("Failed to close log file: "+err.Error(), err)
-		} else {
-			logger.Info("Log file closed and removed successfully")
+		if err := cmd.Wait(); err != nil {
+			logger.Error("Failed to wait command: "+err.Error(), err, slog.String("server", s.config.Name))
 		}
 	}()
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
+		return
+	}
+	s.pipe = stdout
+
+	if err = cmd.Start(); err != nil {
+		logger.Error("Failed to start command: "+err.Error(), err, slog.String("server", s.config.Name))
+		return
+	}
+
+	scanner := bufio.NewScanner(s.pipe)
+	currentLine, err := strconv.Atoi(s.config.StartLine)
+	if err != nil {
+		logger.Error("Failed to parse start line: "+err.Error(), err, slog.String("server", s.config.Name))
+		return
+	}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		s.broadcastLine(line, currentLine)
+		err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
+		currentLine++
+	}
+	if err = scanner.Err(); err != nil {
+		logger.Error("Failed to scan stdout: "+err.Error(), err, slog.String("server", s.config.Name))
+	}
+}
+
+// StartLogging основной метод для работы чтения логгирования
+func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer s.deleteLocalLogs()
 
 	err := s.connect()
 	if err != nil {
@@ -155,7 +212,7 @@ func (s *ServerLogger) StartLogging(ctx context.Context, wg *sync.WaitGroup) {
 		startLine = s.config.StartLine
 	}
 
-	cmd := fmt.Sprintf("tail -n +%s %s && tail -f %s", startLine, s.config.LogDir, s.config.LogDir)
+	cmd := fmt.Sprintf("tail -n +%s -f %s", startLine, s.config.LogDir)
 	if err = s.session.Start(cmd); err != nil {
 		logger.Error("Command start failed: "+err.Error(), err, slog.Any("server", s.config.Host))
 		return
@@ -240,4 +297,14 @@ func (s *ServerLogger) MultiLog(message string, args ...any) {
 	args = append(args, slog.Any("server", s.config.Host))
 	logger.Info(message, args...)
 	s.broadcastLine(message, -1)
+}
+
+func (s *ServerLogger) deleteLocalLogs() {
+	logger.Info("Start delete local log file", slog.Any("server", s.config.Host))
+	err := s.File.CLoseAndRemove()
+	if err != nil {
+		logger.Error("Failed to close log file: "+err.Error(), err)
+	} else {
+		logger.Info("Log file closed and removed successfully")
+	}
 }

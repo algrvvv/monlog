@@ -30,7 +30,11 @@ func getHashedFilename(filename string) string {
 	return re.ReplaceAllString(fullName, "")
 }
 
-func NewLogFile(filename string) (*LogFile, error) {
+func NewLogFile(filename string, enabled bool) (*LogFile, error) {
+	if !enabled {
+		return nil, nil
+	}
+
 	hashedFilename := getHashedFilename(filename)
 	path := fmt.Sprintf("logs/%s.log", hashedFilename)
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
