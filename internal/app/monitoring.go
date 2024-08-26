@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,7 +33,7 @@ type ServerLogger struct {
 
 // NewServerLogger метод для создания нового сервера для чтения логов
 func NewServerLogger(id int, config config.ServerConfig) *ServerLogger {
-	file, err := NewLogFile(config.Host, config.Enabled)
+	file, err := NewLogFile(config.Name, config.Enabled)
 	if err != nil {
 		logger.Error("Failed to create and open local clone log file: %v", err)
 		return nil
@@ -151,47 +152,66 @@ func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup
 	defer wg.Done()
 	defer s.deleteLocalLogs()
 
+	files := strings.Fields(s.config.LogDir)
+	names := strings.Split(s.config.Name, ",")
+	var lwg sync.WaitGroup
+
 	startLine := "1"
 	if s.config.StartLine != "0" {
 		startLine = s.config.StartLine
 	}
 
-	command := fmt.Sprintf("tail -n +%s -f %s", startLine, s.config.LogDir)
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
-	defer func() {
-		if err := cmd.Wait(); err != nil {
-			logger.Error("Failed to wait command: "+err.Error(), err, slog.String("server", s.config.Name))
+	for i, file := range files {
+		var name string
+		if len(names) != len(files) {
+			name = names[0]
+		} else {
+			name = names[i]
 		}
-	}()
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
-		return
-	}
-	s.pipe = stdout
+		lwg.Add(1)
+		go func() {
+			defer lwg.Done()
+			command := fmt.Sprintf("tail -n +%s -f %s", startLine, file)
+			cmd := exec.CommandContext(ctx, "sh", "-c", command)
+			defer func() {
+				if err := cmd.Wait(); err != nil {
+					logger.Error("Failed to wait command: "+err.Error(), err, slog.String("server", s.config.Name))
+				}
+			}()
 
-	if err = cmd.Start(); err != nil {
-		logger.Error("Failed to start command: "+err.Error(), err, slog.String("server", s.config.Name))
-		return
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
+				return
+			}
+
+			if err = cmd.Start(); err != nil {
+				logger.Error("Failed to start command: "+err.Error(), err, slog.String("server", s.config.Name))
+				return
+			}
+
+			scanner := bufio.NewScanner(stdout)
+			currentLine, err := strconv.Atoi(s.config.StartLine)
+			if err != nil {
+				logger.Error("Failed to parse start line: "+err.Error(), err, slog.String("server", s.config.Name))
+				return
+			}
+
+			for scanner.Scan() {
+				line := fmt.Sprintf("[%s] %s", name, scanner.Text())
+				s.broadcastLine(line, currentLine)
+				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
+				currentLine++
+			}
+
+			if err = scanner.Err(); err != nil {
+				logger.Error("Failed to scan stdout: "+err.Error(), err, slog.String("server", s.config.Name))
+			}
+		}()
 	}
 
-	scanner := bufio.NewScanner(s.pipe)
-	currentLine, err := strconv.Atoi(s.config.StartLine)
-	if err != nil {
-		logger.Error("Failed to parse start line: "+err.Error(), err, slog.String("server", s.config.Name))
-		return
-	}
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		s.broadcastLine(line, currentLine)
-		err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
-		currentLine++
-	}
-	if err = scanner.Err(); err != nil {
-		logger.Error("Failed to scan stdout: "+err.Error(), err, slog.String("server", s.config.Name))
-	}
+	lwg.Wait()
 }
 
 // StartLogging основной метод для работы чтения логгирования
