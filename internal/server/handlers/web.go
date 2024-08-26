@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 
 type serverForTemp struct {
 	ID   int
-	Addr string
+	Name string
 }
 
 var (
@@ -37,9 +36,12 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	var servers []serverForTemp
 	for i, s := range config.Cfg.Servers {
+		if !s.Enabled {
+			continue
+		}
 		serv := serverForTemp{
 			ID:   i,
-			Addr: fmt.Sprintf("%s:%d", s.Host, s.Port),
+			Name: s.Name,
 		}
 		servers = append(servers, serv)
 	}

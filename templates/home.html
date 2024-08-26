@@ -13,7 +13,7 @@
         <h1 class="title">Select server for check logs:</h1>
         <div class="servers-wrapper">
             {{range .}}
-                <a class="server-link" href="/logs/{{.ID}}">{{.Addr}}</a>
+                <a class="server-link" href="/logs/{{.ID}}">{{.Name}}</a>
             {{else}}
                 <span>No servers available</span>
             {{end}}
