@@ -16,6 +16,8 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
+	Enabled   bool     `yaml:"enabled"`
+	Name      string   `yaml:"name"`
 	Host      string   `yaml:"host"`
 	User      string   `yaml:"user"`
 	Port      int      `yaml:"port"`

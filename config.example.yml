@@ -6,7 +6,9 @@ app:
   number_rows_to_load: 100              # колво строк, которое загружается при подключении
 
 servers:
-  - host: 127.0.0.1                     # хост для подключения
+  - enabled: true                       # включена ли эта проверка
+    name: Test remote server            # название проверки
+    host: 127.0.0.1                     # хост для подключения
     port: 22                            # порт для подключения
     user: root                          # пользователь для подключения
     notify: true                        # отправлять уведомления при уровне ERROR
@@ -17,6 +19,15 @@ servers:
     last_notify_line: 0                 # ДАННОЕ ЗНАЧЕНИЕ МЕНЯТЬ НЕЖЕЛАТЕЛЬНО.
     # Оно используется для сохранения последнего лога с уведомлением.
     # Чтобы не приходили повторные уведомления - не трогайте это поле
+
+  - enabled: false
+    name: Test local server
+    is_local: true
+    notify: true
+    start_line: 0
+    log_dir: path/to/your/file.log
+    chat_ids: [ YOUR_TG_CHAT_IDS_HERE ]
+    last_notify_line: 0
 
 # (keywords) - ключи в логах,
 # которые могут в ваших логах иметь ту же цель, но другое название
