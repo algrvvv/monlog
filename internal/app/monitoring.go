@@ -89,23 +89,7 @@ func (s *ServerLogger) connect() error {
 	if err != nil {
 		return errors.New("Connect to remote server error: " + err.Error())
 	}
-
-	session, err := client.NewSession()
-	if err != nil {
-		client.Close()
-		return errors.New("Create session error: " + err.Error())
-	}
-
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		client.Close()
-		session.Close()
-		return errors.New("Create stdout pipe error: " + err.Error())
-	}
-
-	s.session = session
 	s.client = client
-	s.pipe = stdout
 
 	return nil
 }
@@ -199,7 +183,12 @@ func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup
 			}
 
 			for scanner.Scan() {
-				line := fmt.Sprintf("[%s] %s", name, scanner.Text())
+				var line string
+				if len(names) == 1 {
+					line = scanner.Text()
+				} else {
+					line = fmt.Sprintf("[%s] %s", name, scanner.Text())
+				}
 				s.broadcastLine(line, currentLine)
 				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
 				currentLine++
@@ -225,75 +214,118 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 		return
 	}
 	defer s.client.Close()
-	defer s.session.Close()
 
-	startLine := "1"
-	if s.config.StartLine != "0" {
-		startLine = s.config.StartLine
-	}
+	rwg := sync.WaitGroup{}
+	files := strings.Fields(s.config.LogDir)
+	names := strings.Split(s.config.Name, ",")
 
-	cmd := fmt.Sprintf("tail -n +%s -f %s", startLine, s.config.LogDir)
-	if err = s.session.Start(cmd); err != nil {
-		logger.Error("Command start failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-		return
-	}
+	for i, file := range files {
+		rwg.Add(1)
+		go func() {
+			defer rwg.Done()
+			var (
+				name        string
+				currentLine int
+				stdout      io.Reader
+				session     *ssh.Session
+			)
 
-	scanner := bufio.NewScanner(s.pipe)
-	done := make(chan struct{})
-	currentLine, err := strconv.Atoi(s.config.StartLine)
-	if err != nil {
-		logger.Error("Parse start line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-		return
-	}
-
-	go func() {
-		defer close(done)
-		for scanner.Scan() {
-			line := scanner.Text()
-			s.broadcastLine(line, currentLine)
-			if err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB); err != nil {
-				logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-			}
-			currentLine++
-		}
-		if err = scanner.Err(); err != nil {
-			logger.Error("Scanner failed: "+err.Error(), err, slog.Any("server", s.config.Host))
-		} else {
-			logger.Info("Scanner finished", slog.Any("server", s.config.Host))
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		logger.Info("Getting signal, stopping session...", slog.Any("server", s.config.Host))
-		if err = s.session.Signal(ssh.SIGTERM); err != nil {
-			logger.Warn("Failed to send SIGTERM to server", slog.Any("server", s.config.Host))
-		}
-
-		select {
-		case <-done:
-			logger.Info("Session closed by SIGTERM", slog.Any("server", s.config.Host))
-		case <-time.After(5 * time.Second):
-			logger.Warn("Session dont closed by SIGTERM, trying SIGKILL...", slog.Any("server", s.config.Host))
-			if err = s.session.Signal(ssh.SIGKILL); err != nil {
-				logger.Error("Failed to send SIGKILL to server", err, slog.Any("server", s.config.Host))
+			if len(names) != len(files) {
+				name = names[0]
+			} else {
+				name = names[i]
 			}
 
-			// код ниже можно оставить, хотя по итогу на одном из серверов даже через килл процесс не завершался
-			// после завершения программа и проверки этого процесса на сервере - его уже не было
-			// так что оставлять это ожидание я не буду
+			session, err = s.client.NewSession()
+			if err != nil {
+				s.client.Close()
+				logger.Error("Failed to create session: "+err.Error(), err, slog.String("server", s.config.Host))
+				return
+			}
 
-			// logger.Info("Waiting for session to close", slog.Any("server", s.config.Host))
-			// select {
-			// case <-done:
-			// 	 logger.Info("Session closed by SIGKILL", slog.Any("server", s.config.Host))
-			// case <-time.After(10 * time.Second):
-			//	 logger.Error("Failed to kill session", err, slog.Any("server", s.config.Host))
-			// }
-		}
-	case <-done:
-		logger.Info("Command has been finished successfully", slog.Any("server", s.config.Host))
+			stdout, err = session.StdoutPipe()
+			if err != nil {
+				s.client.Close()
+				session.Close()
+				logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
+				return
+			}
+
+			startLine := "1"
+			if s.config.StartLine != "0" {
+				startLine = s.config.StartLine
+			}
+			cmd := fmt.Sprintf("tail -n +%s -f %s", startLine, file)
+
+			if err = session.Start(cmd); err != nil {
+				logger.Error("Command start failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				return
+			}
+
+			scanner := bufio.NewScanner(stdout)
+			done := make(chan struct{})
+			currentLine, err = strconv.Atoi(s.config.StartLine)
+			if err != nil {
+				logger.Error("Parse start line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				return
+			}
+
+			go func() {
+				defer close(done)
+				for scanner.Scan() {
+					var line string
+					if len(names) == 1 {
+						line = scanner.Text()
+					} else {
+						line = fmt.Sprintf("[%s] %s", name, scanner.Text())
+					}
+					s.broadcastLine(line, currentLine)
+					if err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB); err != nil {
+						logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+					}
+					currentLine++
+				}
+				if err = scanner.Err(); err != nil {
+					logger.Error("Scanner failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				} else {
+					logger.Info("Scanner finished", slog.Any("server", s.config.Host))
+				}
+			}()
+
+			select {
+			case <-ctx.Done():
+				logger.Info("Getting signal, stopping session...", slog.Any("server", s.config.Host))
+				if err = session.Signal(ssh.SIGTERM); err != nil {
+					logger.Warn("Failed to send SIGTERM to server", slog.Any("server", s.config.Host))
+				}
+
+				select {
+				case <-done:
+					logger.Info("Session closed by SIGTERM", slog.Any("server", s.config.Host))
+				case <-time.After(5 * time.Second):
+					logger.Warn("Session dont closed by SIGTERM, trying SIGKILL...", slog.Any("server", s.config.Host))
+					if err = session.Signal(ssh.SIGKILL); err != nil {
+						logger.Error("Failed to send SIGKILL to server", err, slog.Any("server", s.config.Host))
+					}
+
+					// код ниже можно оставить, хотя по итогу на одном из серверов даже через килл процесс не завершался
+					// после завершения программа и проверки этого процесса на сервере - его уже не было
+					// так что оставлять это ожидание я не буду
+
+					// logger.Info("Waiting for session to close", slog.Any("server", s.config.Host))
+					// select {
+					// case <-done:
+					// 	 logger.Info("Session closed by SIGKILL", slog.Any("server", s.config.Host))
+					// case <-time.After(10 * time.Second):
+					//	 logger.Error("Failed to kill session", err, slog.Any("server", s.config.Host))
+					// }
+				}
+			case <-done:
+				logger.Info("Command has been finished successfully", slog.Any("server", s.config.Host))
+			}
+		}()
 	}
+	rwg.Wait()
 }
 
 // broadcastLine метод для обработки новой строки при чтении с лог файла
