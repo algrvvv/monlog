@@ -67,7 +67,11 @@ func GetLogsByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_ = temp.Execute(w, nil)
+		_ = temp.Execute(w, struct {
+			RowsLoad int
+		}{
+			RowsLoad: config.Cfg.App.NumberRowsToLoad,
+		})
 	} else {
 		utils.RenderError(w, "Предоставлен некорректный айди сервера", http.StatusBadRequest)
 	}
