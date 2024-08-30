@@ -3,16 +3,18 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
+
+	"github.com/algrvvv/monlog/internal/logger"
 )
 
 type AppConfig struct {
 	TGBotToken        string `yaml:"tg_bot_token"`
-	PathToIDRSA       string `yaml:"path_to_id_rsa" validate:"required"`
+	PathToIDRSA       string `yaml:"path_to_id_rsa" validate:"required,file"`
 	Port              int    `yaml:"port" validate:"required"`
 	MaxLocalLogSizeMB int    `yaml:"max_local_log_size_mb" validate:"required"`
 	NumberRowsToLoad  int    `yaml:"number_rows_to_load" validate:"required"`
@@ -45,6 +47,8 @@ type Config struct {
 	Keywords Keywords       `yaml:"keywords"`
 }
 
+// checkHUPValidator function to check Host, User, Port if the IsLocal field is false.
+// hence the name - CheckHostUserPort
 func checkHUPValidator(fl validator.FieldLevel) bool {
 	config := fl.Parent().Interface().(ServerConfig)
 	if !config.IsLocal {
@@ -55,6 +59,7 @@ func checkHUPValidator(fl validator.FieldLevel) bool {
 	return true
 }
 
+// translateError function for custom error messages
 func translateError(err validator.ValidationErrors) map[string]string {
 	customErrMsg := make(map[string]string)
 	getErrorMsg := func(fieldError validator.FieldError) string {
@@ -62,6 +67,8 @@ func translateError(err validator.ValidationErrors) map[string]string {
 			return fmt.Sprintf("%s is required field [%s(%s)]", fieldError.StructField(), fieldError.Namespace(), fieldError.Kind())
 		} else if fieldError.Tag() == "checkHUP" {
 			return fmt.Sprintf("If server is not local, his host, user and port required [%s]", fieldError.Namespace())
+		} else if fieldError.Tag() == "file" {
+			return fmt.Sprintf("%s must be an existing file [%s]", fieldError.StructField(), fieldError.Namespace())
 		}
 		return fieldError.Error()
 	}
@@ -72,13 +79,14 @@ func translateError(err validator.ValidationErrors) map[string]string {
 	return customErrMsg
 }
 
+// validateConfigPart function for custom error messages
 func validateConfigPart(validate *validator.Validate, s interface{}) error {
 	if err := validate.Struct(s); err != nil {
 		var validationErrors validator.ValidationErrors
 		errors.As(err, &validationErrors)
 		customErrMsg := translateError(validationErrors)
-		for field, message := range customErrMsg {
-			log.Printf("Config validation error: %s: %s\n", field, message)
+		for _, message := range customErrMsg {
+			logger.Warn("Config validation error: " + message)
 		}
 		return errors.New("failed to parse config.yml")
 	}
@@ -87,6 +95,7 @@ func validateConfigPart(validate *validator.Validate, s interface{}) error {
 
 var Cfg Config
 
+// LoadConfig the main function for load config
 func LoadConfig(filepath string) error {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
@@ -102,11 +111,15 @@ func LoadConfig(filepath string) error {
 	_ = validate.RegisterValidation("checkHUP", checkHUPValidator)
 
 	if err = validateConfigPart(validate, config.App); err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error(), err)
 	}
 	for i, server := range config.Servers {
 		if err = validateConfigPart(validate, server); err != nil {
-			log.Fatalf("[server-%d] %v", i, err)
+			logger.Warn(
+				fmt.Sprintf("Server number %d ==> %v; This server will be forcibly disabled from the general list of servers", i, err),
+				slog.Any("error", err))
+			config.Servers[i].Enabled = false
+			logger.Info(fmt.Sprintf("Server number %d is disabled ==> %v", i, server.Enabled))
 		}
 	}
 
