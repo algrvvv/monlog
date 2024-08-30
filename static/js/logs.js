@@ -1,3 +1,17 @@
+const loader = document.getElementById('loader');
+const mainContent = document.getElementById('content');
+
+function switchLoaderAndContent() {
+    const loaderDisplay = loader.style.display;
+    if (loaderDisplay === 'none') {
+        loader.style.display = 'block';
+        mainContent.style.display = 'none';
+    } else {
+        loader.style.display = 'none';
+        mainContent.style.display = 'block'
+    }
+}
+
 CodeMirror.defineMode("log", function (config, parserConfig) {
     function tokenBase(stream, state) {
         if (stream.eat("[") && stream.skipTo("]")) {
@@ -122,13 +136,18 @@ const servID = urlParts[urlParts.length - 1];
 
 const axiosURL = `http://${location.host}/api/v1/logs/prev/${servID}`
 console.log(axiosURL)
-axios.get(axiosURL).then(res => {
-    console.log(res)
-    addLogLinesToStart(res.data.lines)
-}).catch(err => {
-    console.error(err)
-})
 
+async function getPrevRows() {
+    try {
+        const response = await axios.get(axiosURL);
+        console.log(response)
+        addLogLinesToStart(response.data.lines)
+        switchLoaderAndContent()
+    } catch (error) {
+        console.error("Error getting prev rows: ", error)
+    }
+}
+getPrevRows();
 
 const wsURL = `ws://${location.host}/ws/${servID}`;
 console.log(wsURL)
