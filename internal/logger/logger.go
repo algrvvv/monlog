@@ -1,11 +1,13 @@
 package logger
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/lmittmann/tint"
 	"github.com/mdobak/go-xerrors"
 	slogmulti "github.com/samber/slog-multi"
 )
@@ -60,6 +62,9 @@ func replaceAttr(_ []string, a slog.Attr) slog.Attr {
 		case error:
 			a.Value = fmtError(v)
 		}
+	case slog.KindTime:
+		t := a.Value.Time()
+		a.Value = slog.StringValue(t.Format("02.01.06 15:04:05"))
 	}
 
 	return a
@@ -78,7 +83,10 @@ func NewLogger(logfile string) error {
 	}
 
 	fileHandler := slog.NewJSONHandler(file, opts)
-	consoleHandler := slog.NewTextHandler(os.Stdout, nil)
+	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: "02.01.06 15:04:05",
+	})
 
 	buildinfo, _ := debug.ReadBuildInfo()
 
@@ -112,4 +120,32 @@ func Error(msg string, err error, args ...any) {
 	e := xerrors.New(err)
 	args = append(args, slog.Any("error", e))
 	logger.Error(msg, args...)
+}
+
+func Fatal(msg string, err error, args ...any) {
+	e := xerrors.New(err)
+	args = append(args, slog.Any("error", e))
+	logger.Error(msg, args...)
+	os.Exit(1)
+}
+
+func Infof(message string, args ...any) {
+	msg := fmt.Sprintf(message, args...)
+	logger.Info(msg)
+}
+
+func Warnf(message string, args ...any) {
+	msg := fmt.Sprintf(message, args...)
+	logger.Warn(msg)
+}
+
+func Errorf(message string, args ...any) {
+	msg := fmt.Sprintf(message, args...)
+	logger.Error(msg)
+}
+
+func Fatalf(message string, args ...any) {
+	msg := fmt.Sprintf(message, args...)
+	logger.Error(msg)
+	os.Exit(1)
 }
