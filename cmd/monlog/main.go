@@ -15,14 +15,14 @@ import (
 )
 
 func main() {
-	err := config.LoadConfig("config.yml")
+	err := logger.NewLogger("monlog.log")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = logger.NewLogger("monlog.log")
+	err = config.LoadConfig("config.yml")
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error(), err)
 	}
 
 	serv, serverLoggers := server.NewServer()
