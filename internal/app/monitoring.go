@@ -333,8 +333,6 @@ func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
 
-	fmt.Printf("[COPY_%d] %d. %s\n", s.ID, currentLine, line)
-
 	logger.Info("broadcasting line", slog.Any("connections", s.wsConns))
 	for _, conn := range s.wsConns {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
