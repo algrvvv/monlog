@@ -5,6 +5,7 @@ go 1.22.4
 require (
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/lmittmann/tint v1.0.5
 	github.com/mdobak/go-xerrors v0.3.1
 	github.com/samber/slog-multi v1.2.0
 	golang.org/x/crypto v0.26.0
