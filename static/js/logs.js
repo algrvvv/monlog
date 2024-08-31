@@ -1,5 +1,6 @@
 const loader = document.getElementById('loader');
 const mainContent = document.getElementById('content');
+let lastLine = 0;
 
 function switchLoaderAndContent() {
     const loaderDisplay = loader.style.display;
@@ -96,8 +97,6 @@ function addLogLinesToStart(lines) {
     const currentContent = editor.getValue();
     const newContent = lines.join('\n') + "\n" + currentContent;
     editor.setValue(newContent);
-    autoScrollBottom()
-    // editor.scrollTo(0,0);
 }
 
 function addLogLine(newLog) {
@@ -140,14 +139,29 @@ console.log(axiosURL)
 async function getPrevRows() {
     try {
         const response = await axios.get(axiosURL);
-        console.log(response)
-        addLogLinesToStart(response.data.lines)
-        switchLoaderAndContent()
+        console.log(response);
+        lastLine = response.data.lastLine;
+        addLogLinesToStart(response.data.lines);
+        autoScrollBottom()
+        switchLoaderAndContent();
     } catch (error) {
         console.error("Error getting prev rows: ", error)
     }
 }
+
 getPrevRows();
+
+function getPrevRowsByCount(lineCount) {
+    const url = `http://${location.host}/api/v1/logs/prev/count/${servID}?start=${lastLine - lineCount}&end=${lastLine}`
+    axios.get(url).then(res => {
+        console.log(res)
+        lastLine = res.data.lastLine
+        addLogLinesToStart(res.data.lines)
+        editor.scrollTo(0, 0);
+    }).catch(err => {
+        console.error(err)
+    })
+}
 
 const wsURL = `ws://${location.host}/ws/${servID}`;
 console.log(wsURL)

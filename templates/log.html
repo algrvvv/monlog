@@ -28,7 +28,7 @@
             <div class="helpers-block">
                 <input class="search-in-logs" type="text" placeholder="Поиск" id="search" autocomplete="off">
                 <div class="helpers-btn">
-                    <button class="btn">Загрузить еще {{.RowsLoad}} строк</button>
+                    <button class="btn" onclick="getPrevRowsByCount('{{.RowsLoad}}')">Загрузить еще {{.RowsLoad}} строк</button>
                     <button class="btn">Загрузить все доступные логи</button>
                 </div>
             </div>
