@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/algrvvv/monlog/internal/app"
 	"github.com/algrvvv/monlog/internal/config"
@@ -32,8 +33,59 @@ func APIGetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		jsonData, err := json.Marshal(map[string]interface{}{
-			"total": total,
-			"lines": content,
+			"total":    total,
+			"lines":    content,
+			"lastLine": total - rows,
+		})
+		if err != nil {
+			logger.Error(err.Error(), err)
+			utils.SendErrorJSON(w, "Ошибка парсинга данных", http.StatusBadGateway)
+			return
+		}
+		_, _ = w.Write(jsonData)
+	}
+}
+
+func APIGetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serverID := utils.ValidateServerId(r.PathValue("id"))
+		if serverID < 0 {
+			utils.SendErrorJSON(w, "invalid server id", http.StatusBadRequest)
+			return
+		}
+		serverLogger := serverLoggers[serverID]
+		startLine, err := strconv.Atoi(r.URL.Query().Get("start"))
+		if err != nil {
+			utils.SendErrorJSON(w, "Invalid start line", http.StatusBadRequest)
+			logger.Error("Invalid start line: "+err.Error(), err)
+			return
+		}
+		endLine, err := strconv.Atoi(r.URL.Query().Get("end"))
+		if err != nil {
+			utils.SendErrorJSON(w, "Invalid end line", http.StatusBadRequest)
+			logger.Error("Invalid end line: "+err.Error(), err)
+			return
+		}
+
+		total, err := serverLogger.File.GetLineCount()
+		if err != nil {
+			utils.SendErrorJSON(w, "Ошибка получения данных", http.StatusBadGateway)
+			logger.Error("Failed to get total lines file: "+err.Error(), err)
+			return
+		}
+
+		if startLine > endLine || startLine > total || endLine > total {
+			utils.SendErrorJSON(w, "one of the parameters is incorrect", http.StatusBadRequest)
+			logger.Error("one of the parameters is incorrect", nil)
+			return
+		}
+
+		lines := serverLogger.File.ReadLines(startLine, endLine)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		jsonData, err := json.Marshal(map[string]interface{}{
+			"lastLine": startLine,
+			"lines":    lines,
 		})
 		if err != nil {
 			logger.Error(err.Error(), err)

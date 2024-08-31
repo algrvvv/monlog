@@ -32,6 +32,7 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 
 	v1 := http.NewServeMux()
 	v1.HandleFunc("GET /logs/prev/{id}", handlers.APIGetLinesByID(servLoggers))
+	v1.HandleFunc("GET /logs/prev/count/{id}", handlers.APIGetPrevLogsByCount(servLoggers))
 	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
 	server.HandleFunc("/ws/{id}", handlers.WsHandler(servLoggers))
