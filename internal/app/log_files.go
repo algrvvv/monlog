@@ -97,8 +97,10 @@ func (lf *LogFile) PushLineWithLimit(line string, limitMB int) error {
 	return nil
 }
 
-// ReadFullFile метод для чтения всего файла кусками
-func (lf *LogFile) ReadFullFile(callback func([]byte)) {
+// ReadFullFile метод для чтения всего файла кусками.
+// Вторым параметром передается колбек для большей мобильности метода.
+// К примеру, получения кусочка данных и отправка их по вебсокетам и тд
+func (lf *LogFile) ReadFullFile(targetLine int, callback func([]byte) []string) {
 	lf.mu.Lock()
 	defer lf.mu.Unlock()
 
@@ -108,16 +110,35 @@ func (lf *LogFile) ReadFullFile(callback func([]byte)) {
 		return
 	}
 
-	reader := bufio.NewReader(lf.File)
-	buffer := make([]byte, 1024)
+	var (
+		n       int
+		lineNum int
+		reader  = bufio.NewReader(lf.File)
+		buffer  = make([]byte, 1024)
+	)
 
 	for {
-		n, err := reader.Read(buffer)
+		n, err = reader.Read(buffer)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				logger.Error("error reading file: "+err.Error(), err)
+				break
 			}
-			break
+			logger.Error("error reading file: "+err.Error(), err)
+			return
+		}
+
+		for i := 0; i < n; i++ {
+			if buffer[i] == '\n' {
+				lineNum++
+			}
+
+			if lineNum >= targetLine {
+				err = lf.setCursorPosition(pos)
+				if err != nil {
+					logger.Error("Error setting cursor position: "+err.Error(), err)
+				}
+				return
+			}
 		}
 		callback(buffer[:n])
 	}

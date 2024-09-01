@@ -12,7 +12,7 @@ import (
 	"github.com/algrvvv/monlog/internal/utils"
 )
 
-func APIGetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
+func GetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverID := utils.ValidateServerId(r.PathValue("id"))
 		if serverID < 0 {
@@ -46,7 +46,7 @@ func APIGetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	}
 }
 
-func APIGetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
+func GetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverID := utils.ValidateServerId(r.PathValue("id"))
 		if serverID < 0 {
@@ -74,7 +74,7 @@ func APIGetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			return
 		}
 
-		if startLine > endLine || startLine > total || endLine > total {
+		if startLine > endLine || startLine > total || endLine > total || startLine < 0 || endLine < 0 {
 			utils.SendErrorJSON(w, "one of the parameters is incorrect", http.StatusBadRequest)
 			logger.Error("one of the parameters is incorrect", nil)
 			return
@@ -86,6 +86,50 @@ func APIGetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		jsonData, err := json.Marshal(map[string]interface{}{
 			"lastLine": startLine,
 			"lines":    lines,
+		})
+		if err != nil {
+			logger.Error(err.Error(), err)
+			utils.SendErrorJSON(w, "Ошибка парсинга данных", http.StatusBadGateway)
+			return
+		}
+		_, _ = w.Write(jsonData)
+	}
+}
+
+func GetAllPrevLogs(serverLoggers []*app.ServerLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serverID := utils.ValidateServerId(r.PathValue("id"))
+		if serverID < 0 {
+			utils.SendErrorJSON(w, "invalid server id", http.StatusBadRequest)
+			return
+		}
+		serverLogger := serverLoggers[serverID]
+		targetLine, err := strconv.Atoi(r.URL.Query().Get("target"))
+		if err != nil {
+			utils.SendErrorJSON(w, "Invalid start line", http.StatusBadRequest)
+			logger.Error("Invalid start line: "+err.Error(), err)
+			return
+		}
+
+		total, err := serverLogger.File.GetLineCount()
+		if err != nil {
+			utils.SendErrorJSON(w, "Ошибка получения данных", http.StatusBadGateway)
+			logger.Error("Failed to get total lines file: "+err.Error(), err)
+			return
+		}
+
+		if targetLine > total || targetLine < 0 {
+			utils.SendErrorJSON(w, "one of the parameters is incorrect", http.StatusBadRequest)
+			logger.Error("one of the parameters is incorrect", nil)
+			return
+		}
+
+		reader := utils.ReaderCallback()
+		serverLogger.File.ReadFullFile(targetLine, reader)
+
+		jsonData, err := json.Marshal(map[string]interface{}{
+			"lastLine": 0,
+			"lines":    reader([]byte("\nConnected to server\n")),
 		})
 		if err != nil {
 			logger.Error(err.Error(), err)

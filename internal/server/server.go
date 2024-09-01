@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/algrvvv/monlog/internal/app"
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/server/handlers"
 	"github.com/algrvvv/monlog/internal/server/middlewares"
-	"net/http"
 )
 
 func NewServer() (*http.Server, []*app.ServerLogger) {
@@ -31,8 +32,9 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	server.HandleFunc("GET /logs/{id}", handlers.GetLogsByID)
 
 	v1 := http.NewServeMux()
-	v1.HandleFunc("GET /logs/prev/{id}", handlers.APIGetLinesByID(servLoggers))
-	v1.HandleFunc("GET /logs/prev/count/{id}", handlers.APIGetPrevLogsByCount(servLoggers))
+	v1.HandleFunc("GET /logs/prev/{id}", handlers.GetLinesByID(servLoggers))
+	v1.HandleFunc("GET /logs/prev/count/{id}", handlers.GetPrevLogsByCount(servLoggers))
+	v1.HandleFunc("GET /logs/prev/all/{id}", handlers.GetAllPrevLogs(servLoggers))
 	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
 	server.HandleFunc("/ws/{id}", handlers.WsHandler(servLoggers))

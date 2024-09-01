@@ -29,7 +29,7 @@
                 <input class="search-in-logs" type="text" placeholder="Поиск" id="search" autocomplete="off">
                 <div class="helpers-btn">
                     <button class="btn" onclick="getPrevRowsByCount('{{.RowsLoad}}')">Загрузить еще {{.RowsLoad}} строк</button>
-                    <button class="btn">Загрузить все доступные логи</button>
+                    <button class="btn" onclick="getAllPrevLogs()">Загрузить все доступные логи</button>
                 </div>
             </div>
             <span class="hints">Найдено совпадений: <span id="matches">0</span></span>

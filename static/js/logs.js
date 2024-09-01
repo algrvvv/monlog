@@ -79,10 +79,11 @@ const editor = CodeMirror.fromTextArea(document.getElementById("logs"), {
     // mode: getLogMode(document.getElementById("code").value),
     mode: "log",
     lineNumbers: true,
+    lineWrapping: true,
+    viewportMargin: 10,
     theme: "default",
     fontFamily: 'JetBrains Mono, monospace',
     readOnly: true,
-    viewportMargin: Infinity
 });
 
 function autoScrollBottom() {
@@ -153,6 +154,18 @@ getPrevRows();
 
 function getPrevRowsByCount(lineCount) {
     const url = `http://${location.host}/api/v1/logs/prev/count/${servID}?start=${lastLine - lineCount}&end=${lastLine}`
+    axios.get(url).then(res => {
+        console.log(res)
+        lastLine = res.data.lastLine
+        addLogLinesToStart(res.data.lines)
+        editor.scrollTo(0, 0);
+    }).catch(err => {
+        console.error(err)
+    })
+}
+
+function getAllPrevLogs() {
+    const url = `http://${location.host}/api/v1/logs/prev/all/${servID}?target=${lastLine}`
     axios.get(url).then(res => {
         console.log(res)
         lastLine = res.data.lastLine
