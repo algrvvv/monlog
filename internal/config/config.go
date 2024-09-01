@@ -1,10 +1,12 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"reflect"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -21,31 +23,38 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
-	Enabled   bool     `yaml:"enabled"`
-	Name      string   `yaml:"name" validate:"required"`
-	Host      string   `yaml:"host" validate:"-"`
-	User      string   `yaml:"user" validate:"-"`
-	Port      int      `yaml:"port" validate:"-"`
-	LogDir    string   `yaml:"log_dir" validate:"required"`
-	StartLine string   `yaml:"start_line" validate:"required"`
-	ChatIDs   []string `yaml:"chat_ids"`
-	Notify    bool     `yaml:"notify"`
-	IsLocal   bool     `yaml:"is_local" validate:"checkHUP"`
+	Enabled       bool     `yaml:"enabled"`
+	Name          string   `yaml:"name" validate:"required"`
+	Host          string   `yaml:"host" validate:"-"`
+	User          string   `yaml:"user" validate:"-"`
+	Port          int      `yaml:"port" validate:"-"`
+	LogDir        string   `yaml:"log_dir" validate:"required"`
+	LogLayout     string   `yaml:"log_layout" validate:"required"`
+	LogLevel      string   `yaml:"log_levels" validate:"required"`
+	LogTimeFormat string   `yaml:"log_time_format" validate:"required"`
+	StartLine     string   `yaml:"start_line" validate:"required"`
+	ChatIDs       []string `yaml:"chat_ids" validate:"required"`
+	Notify        bool     `yaml:"notify" validate:"required"`
+	IsLocal       bool     `yaml:"is_local" validate:"checkHUP"`
 }
 
-type Keywords struct {
-	Time string `yaml:"time"`
-	Info string `yaml:"info"`
-	Lvl  string `yaml:"lvl"`
-	Msg  string `yaml:"msg"`
-	Err  string `yaml:"err"`
+type DefaultServerConfig struct {
+	StartLine     string   `yaml:"start_line"`
+	LogDir        string   `yaml:"log_dir"`
+	LogLayout     string   `yaml:"log_layout"`
+	LogLevel      string   `yaml:"log_levels"`
+	LogTimeFormat string   `yaml:"log_time_format"`
+	ChatIDs       []string `yaml:"chat_ids"`
+	Notify        bool     `yaml:"notify"`
 }
 
 type Config struct {
-	App      AppConfig      `yaml:"app"`
-	Servers  []ServerConfig `yaml:"servers"`
-	Keywords Keywords       `yaml:"keywords"`
+	App      AppConfig           `yaml:"app"`
+	Defaults DefaultServerConfig `yaml:"default_servers_setting"`
+	Servers  []ServerConfig      `yaml:"servers"`
 }
+
+var DefaultSettings = make(map[string]interface{})
 
 // checkHUPValidator function to check Host, User, Port if the IsLocal field is false.
 // hence the name - CheckHostUserPort
@@ -57,6 +66,21 @@ func checkHUPValidator(fl validator.FieldLevel) bool {
 		}
 	}
 	return true
+}
+
+func setDefaultSettings(s interface{}) {
+	val := reflect.ValueOf(s).Elem()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldName := val.Type().Field(i).Name
+
+		if field.IsZero() {
+			if defaultValue, exists := DefaultSettings[fieldName]; exists {
+				field.Set(reflect.ValueOf(defaultValue))
+			}
+		}
+	}
 }
 
 // translateError function for custom error messages
@@ -107,6 +131,14 @@ func LoadConfig(filepath string) error {
 		return errors.New("failed to parse config.yaml" + err.Error())
 	}
 
+	inrec, _ := json.Marshal(config.Defaults)
+	_ = json.Unmarshal(inrec, &DefaultSettings)
+	fmt.Printf("defaults: %v\n", DefaultSettings)
+
+	for i := range config.Servers {
+		setDefaultSettings(&config.Servers[i])
+	}
+
 	validate := validator.New()
 	_ = validate.RegisterValidation("checkHUP", checkHUPValidator)
 
@@ -119,7 +151,7 @@ func LoadConfig(filepath string) error {
 				fmt.Sprintf("Server number %d ==> %v; This server will be forcibly disabled from the general list of servers", i, err),
 				slog.Any("error", err))
 			config.Servers[i].Enabled = false
-			logger.Info(fmt.Sprintf("Server number %d is disabled ==> %v", i, server.Enabled))
+			logger.Info(fmt.Sprintf("Server number %d is disabled ==> %v", i, config.Servers[i].Enabled))
 		}
 	}
 
