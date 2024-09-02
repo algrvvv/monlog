@@ -34,3 +34,5 @@ config.yml
 # Other files
 *.log
 .certs
+state.yml
+state.yaml
