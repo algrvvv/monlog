@@ -133,7 +133,6 @@ func LoadConfig(filepath string) error {
 
 	inrec, _ := json.Marshal(config.Defaults)
 	_ = json.Unmarshal(inrec, &DefaultSettings)
-	fmt.Printf("defaults: %v\n", DefaultSettings)
 
 	for i := range config.Servers {
 		setDefaultSettings(&config.Servers[i])
