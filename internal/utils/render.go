@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/algrvvv/monlog/internal/logger"
 	"html/template"
 	"net/http"
+
+	"github.com/algrvvv/monlog/internal/logger"
 )
 
 type templateError struct {
