@@ -12,6 +12,7 @@ import (
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/server"
+	"github.com/algrvvv/monlog/internal/state"
 )
 
 func main() {
@@ -20,8 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = config.LoadConfig("config.yml")
-	if err != nil {
+	if err = config.LoadConfig("config.yml"); err != nil {
+		logger.Fatal(err.Error(), err)
+	}
+
+	if err = state.InitializeState(); err != nil {
 		logger.Fatal(err.Error(), err)
 	}
 
