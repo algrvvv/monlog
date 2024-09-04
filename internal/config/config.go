@@ -23,6 +23,7 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
+	ID            int      `yaml:"id" validate:"required"`
 	Enabled       bool     `yaml:"enabled"`
 	Name          string   `yaml:"name" validate:"required"`
 	Host          string   `yaml:"host" validate:"-"`
@@ -155,5 +156,6 @@ func LoadConfig(filepath string) error {
 	}
 
 	Cfg = config
+	logger.Info("Config successfully loaded")
 	return nil
 }
