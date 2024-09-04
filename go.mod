@@ -8,6 +8,7 @@ require (
 	github.com/lmittmann/tint v1.0.5
 	github.com/mdobak/go-xerrors v0.3.1
 	github.com/samber/slog-multi v1.2.0
+	gitlab.com/metakeule/fmtdate v1.2.2
 	golang.org/x/crypto v0.26.0
 	gopkg.in/yaml.v3 v3.0.1
 )
