@@ -63,7 +63,8 @@ func ParseLineAndSendNotify(sid int, line string) {
 
 	matches := regex.FindStringSubmatch(line)
 	if matches == nil {
-		logger.Info("No matches found for line: "+line, slog.Any("layout", sl.LogLayout))
+		logger.Info("No matches found for line: "+line, slog.Any("layout", sl.LogLayout),
+			slog.Any("regex", regex))
 		return
 	}
 
@@ -75,12 +76,16 @@ func ParseLineAndSendNotify(sid int, line string) {
 			// fmt.Printf("%s: %s\n", names[i], match)
 		}
 	}
-	if sl.Notify && isAlertLevel(values["LEVEL"], sl.LogLevel) {
+
+	if sl.Notify && isAlertLevel(values["LEVEL"], sl.LogLevel) && CompareLastNotifyTime(sl.ID, values["TIME"]) {
 		msg := fmt.Sprintf(
-			"Новое уведомление у проверки '%s'\nВремя: %s\nУровень: %s\nСообщение: %s\nПолная строка: %s",
-			sl.Name, values["TIME"], values["LEVEL"], values["MESSAGE"], line)
+			"[%d] Новое уведомление у проверки '%s'\nВремя: %s\nУровень: %s\nСообщение: %s\nПолная строка: %s",
+			sl.ID, sl.Name, values["TIME"], values["LEVEL"], values["MESSAGE"], line)
 		if err = notify.SendNotification(notify.NewTelegramSender(), sid, msg); err != nil {
 			logger.Error("Error sending notification: "+err.Error(), err)
+		}
+		if err = UpdateLastNotifyTime(sl.ID, values["TIME"]); err != nil {
+			logger.Error("Error updating last notify time: "+err.Error(), err, slog.Any("time", values["TIME"]))
 		}
 	}
 }
