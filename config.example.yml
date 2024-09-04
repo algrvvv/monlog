@@ -12,7 +12,8 @@ default_servers_setting:
   log_time_format: "YYYY-MM-DD hm:mm:ss"
 
 servers:
-  - enabled: true                               # включена ли эта проверка
+  - id: 0                                       # айди может быть произвольным
+    enabled: true                               # включена ли эта проверка
     name: Test remote server                    # название проверки
     host: 127.0.0.1                             # хост для подключения
     port: 22                                    # порт для подключения
@@ -28,7 +29,8 @@ servers:
 
   # пример подключения нескольких локальных лог файлов
   # такая же логика работает и для удаленных серверов
-  - enabled: false
+  - id: 9
+    enabled: false
     name: First local server,Second local server
     is_local: true
     notify: true
