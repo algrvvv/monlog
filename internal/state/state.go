@@ -57,7 +57,7 @@ func InitializeState() error {
 		if err != nil {
 			return errors.New("Failed to marshal state.yml" + err.Error())
 		}
-		comment := fmt.Sprintf("# do not change this file. it is used to save information about recent notifications\n# also don't touch the third line as it plays a very important role :D\n# %s\n\n", configHash)
+		comment := getComment(configHash)
 		finalData := append([]byte(comment), marshalled...)
 		_, err = ServState.StateFile.Write(finalData)
 		return err
@@ -68,29 +68,28 @@ func InitializeState() error {
 		return err
 	}
 
+	_, err = ServState.StateFile.Seek(0, 0)
+	if err != nil {
+		return errors.New("Failed to seek state.yml" + err.Error())
+	}
+	var lines []string
+	scanner := bufio.NewScanner(ServState.StateFile)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err = scanner.Err(); err != nil {
+		return errors.New("Failed to scan state.yml at updating" + err.Error())
+	}
+
+	if err = yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &ServState.Srvs); err != nil {
+		return errors.New("Failed to unmarshal state.yml" + err.Error())
+	}
+
 	if currentHast != configHash {
 		var tmp *os.File
 		tmp, err = os.CreateTemp("", "temp_state_*.yml")
 		if err != nil {
 			return errors.New("Failed to create temporary state.yml" + err.Error())
-		}
-
-		_, err = ServState.StateFile.Seek(0, 0)
-		if err != nil {
-			return errors.New("Failed to seek state.yml" + err.Error())
-		}
-		var lines []string
-		scanner := bufio.NewScanner(ServState.StateFile)
-		for scanner.Scan() {
-			lines = append(lines, scanner.Text())
-		}
-		if err = scanner.Err(); err != nil {
-			return errors.New("Failed to scan state.yml at updating" + err.Error())
-		}
-
-		fmt.Println(strings.Join(lines, "\n"))
-		if err = yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &ServState.Srvs); err != nil {
-			return errors.New("Failed to unmarshal state.yml" + err.Error())
 		}
 
 		var statesMap = make(map[int]struct {
@@ -105,10 +104,6 @@ func InitializeState() error {
 				status:         false,
 				lastTimeNotify: ss.LastNotifyTime,
 			}
-		}
-
-		if err != nil {
-			return errors.New("Failed to convert states to json" + err.Error())
 		}
 
 		var (
@@ -136,7 +131,7 @@ func InitializeState() error {
 			}
 		}
 
-		comment := fmt.Sprintf("# do not change this file. it is used to save information about recent notifications\n# also don't touch the third line as it plays a very important role :D\n# %s\n\n", configHash)
+		comment := getComment(configHash)
 		ServState.Srvs = ServersState{
 			Servers: newStates,
 		}
@@ -148,7 +143,6 @@ func InitializeState() error {
 		if _, err = ServState.StateFile.Seek(0, 0); err != nil {
 			return errors.New("Failed to seek state.yml at state" + err.Error())
 		}
-		fmt.Println(string(finalData))
 		_, _ = tmp.Write(finalData)
 
 		if err = ServState.StateFile.Close(); err != nil {
@@ -213,6 +207,84 @@ func (s *ServerState) generateNewStates() {
 	}
 }
 
-func getNowTime(format string) string {
-	return time.Now().Format(format)
+func GetLastNotifyTimeById(id int) string {
+	for _, server := range ServState.Srvs.Servers {
+		if server.ID == id {
+			return server.LastNotifyTime
+		}
+	}
+	return ""
+}
+
+func CompareLastNotifyTime(id int, newTimeStr string) bool {
+	lastTime := GetLastNotifyTimeById(id)
+	if lastTime == "" {
+		logger.Error("Got empty last time", nil)
+		return false
+	}
+	var serv config.ServerConfig
+	for _, server := range config.Cfg.Servers {
+		if id == server.ID {
+			serv = server
+		}
+	}
+	oldTime, err := fmtdate.Parse(serv.LogTimeFormat, lastTime)
+	if err != nil {
+		logger.Error("Failed to parse last time from server "+serv.LogTimeFormat+" "+err.Error(), err)
+		return false
+	}
+	newTime, err := fmtdate.Parse(serv.LogTimeFormat, newTimeStr)
+	if err != nil {
+		logger.Error("Failed to parse new time from server "+serv.LogTimeFormat+" "+err.Error(), err)
+		return false
+	}
+
+	return oldTime.Before(newTime)
+}
+
+func UpdateLastNotifyTime(id int, newTimeStr string) error {
+	ServState.FileMutex.Lock()
+	defer ServState.FileMutex.Unlock()
+
+	tmp, err := os.CreateTemp("", "temp_state_*.yml")
+	if err != nil {
+		return errors.New("Failed to create temporary state.yml" + err.Error())
+	}
+
+	for i, state := range ServState.Srvs.Servers {
+		if id == state.ID {
+			ServState.Srvs.Servers[i].LastNotifyTime = newTimeStr
+		}
+	}
+
+	configHash := ServState.getConfigHash()
+	marshalledData, err := yaml.Marshal(&ServState.Srvs)
+	if err != nil {
+		return errors.New("Failed to marshal state.yml" + err.Error())
+	}
+	comment := getComment(configHash)
+	finalData := append([]byte(comment), marshalledData...)
+	_, _ = tmp.Write(finalData)
+
+	if err = ServState.StateFile.Close(); err != nil {
+		return errors.New("Failed to close state.yml" + err.Error())
+	}
+	if err = os.Remove("state.yml"); err != nil {
+		return errors.New("Failed to remove state.yml" + err.Error())
+	}
+	if err = os.Rename(tmp.Name(), "state.yml"); err != nil {
+		return errors.New("Failed to rename state.yml" + err.Error())
+	}
+
+	ServState.StateFile, err = os.OpenFile("state.yml", os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return errors.New("Failed to reopen state.yml" + err.Error())
+	}
+
+	logger.Info("state successfully updated")
+	return nil
+}
+
+func getComment(configHash string) string {
+	return fmt.Sprintf("# do not change this file. it is used to save information about recent notifications\n# also don't touch the third line as it plays a very important role :D\n# %s\n\n", configHash)
 }
