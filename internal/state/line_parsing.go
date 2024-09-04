@@ -19,9 +19,9 @@ func generateDateTimeRegex(format string) string {
 		"YY":   `\d{2}`,
 		"MM":   `\d{2}`,
 		"DD":   `\d{2}`,
-		"HH":   `\d{2}`,
+		"hh":   `\d{2}`,
 		"mm":   `\d{2}`,
-		"SS":   `\d{2}`,
+		"ss":   `\d{2}`,
 	}
 
 	for key, value := range replacements {
