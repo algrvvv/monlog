@@ -11,6 +11,7 @@ import (
 
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
+	"github.com/algrvvv/monlog/internal/notify"
 	"github.com/algrvvv/monlog/internal/server"
 	"github.com/algrvvv/monlog/internal/state"
 )
@@ -26,6 +27,10 @@ func main() {
 	}
 
 	if err = state.InitializeState(); err != nil {
+		logger.Fatal(err.Error(), err)
+	}
+
+	if err = notify.LoadSenders(); err != nil {
 		logger.Fatal(err.Error(), err)
 	}
 
