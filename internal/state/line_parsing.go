@@ -81,7 +81,7 @@ func ParseLineAndSendNotify(sid int, line string) {
 		msg := fmt.Sprintf(
 			"[%d] Новое уведомление у проверки '%s'\nВремя: %s\nУровень: %s\nСообщение: %s\nПолная строка: %s",
 			sl.ID, sl.Name, values["TIME"], values["LEVEL"], values["MESSAGE"], line)
-		if err = notify.SendNotification(notify.NewTelegramSender(), sid, msg); err != nil {
+		if err = notify.SendNotification(notify.Telegram, sl, msg); err != nil {
 			logger.Error("Error sending notification: "+err.Error(), err)
 		}
 		if err = UpdateLastNotifyTime(sl.ID, values["TIME"]); err != nil {
