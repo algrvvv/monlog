@@ -4,6 +4,7 @@ go 1.22.4
 
 require (
 	github.com/go-playground/validator/v10 v10.22.0
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/lmittmann/tint v1.0.5
 	github.com/mdobak/go-xerrors v0.3.1
