@@ -44,6 +44,7 @@ func (t TelegramSender) Send(server config.ServerConfig, message string) error {
 				return
 			}
 			msg := tgbotapi.NewMessage(id, message)
+			msg.ParseMode = tgbotapi.ModeHTML
 			_, err = t.Bot.Send(msg)
 			if err != nil {
 				logger.Error("Failed to send message: "+err.Error(), err, slog.Any("chat_id", chatID))
