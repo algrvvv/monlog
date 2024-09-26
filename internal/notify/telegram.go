@@ -5,11 +5,10 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/algrvvv/monlog/internal/logger"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"github.com/algrvvv/monlog/internal/config"
+	"github.com/algrvvv/monlog/internal/logger"
 )
 
 type TelegramSender struct {
