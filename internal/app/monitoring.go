@@ -13,13 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/algrvvv/monlog/internal/state"
-
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
+	"github.com/algrvvv/monlog/internal/notify"
 )
 
 type ServerLogger struct {
@@ -336,7 +335,8 @@ func (s *ServerLogger) broadcastLine(line string, currentLine int) {
 	defer s.wsMutex.Unlock()
 
 	// logger.Info("broadcasting line", slog.Any("connections", s.wsConns))
-	go state.ParseLineAndSendNotify(s.ID, line)
+	// go state.ParseLineAndSendNotify(s.ID, line)
+	notify.Notifier.Nchan <- &notify.NQueueItem{ID: s.ID, Line: line}
 	for _, conn := range s.wsConns {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
 		if err != nil {
