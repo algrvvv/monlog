@@ -34,6 +34,9 @@ func main() {
 		logger.Fatal(err.Error(), err)
 	}
 
+	notify.InitNotifier()
+	go notify.Notifier.HandleNewItem(state.ParseLineAndSendNotify)
+
 	serv, serverLoggers := server.NewServer()
 
 	ctx, cancel := context.WithCancel(context.Background())
