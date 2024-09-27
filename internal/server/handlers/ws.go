@@ -16,14 +16,14 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := w.(http.Hijacker); !ok {
 			logger.Error("ResponseWriter не реализует http.Hijacker", errors.New("ResponseWriter does not implement http.Hijacker"))
-			//utils.RenderError(w, "Ошибка сервера", http.StatusInternalServerError)
+			// utils.RenderError(w, "Ошибка сервера", http.StatusInternalServerError)
 			return
 		}
 
 		loggerIndex, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil || loggerIndex > len(serverLoggers) || serverLoggers[loggerIndex] == nil {
 			logger.Error(err.Error(), err)
-			//utils.RenderError(w, "Передан некорректный айди сервера", http.StatusNotFound)
+			// utils.RenderError(w, "Передан некорректный айди сервера", http.StatusNotFound)
 			return
 		}
 
@@ -31,7 +31,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			logger.Error(err.Error(), err)
-			//utils.RenderError(w, "Ошибка подключения вебсокетов", http.StatusBadRequest)
+			// utils.RenderError(w, "Ошибка подключения вебсокетов", http.StatusBadRequest)
 			return
 		}
 		logger.Info("ws connected")

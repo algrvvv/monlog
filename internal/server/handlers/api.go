@@ -14,7 +14,7 @@ import (
 
 func GetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverID := utils.ValidateServerId(r.PathValue("id"))
+		serverID := utils.ValidateServerID(r.PathValue("id"))
 		if serverID < 0 {
 			utils.SendErrorJSON(w, "invalid server id", http.StatusBadRequest)
 			return
@@ -48,7 +48,7 @@ func GetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 
 func GetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverID := utils.ValidateServerId(r.PathValue("id"))
+		serverID := utils.ValidateServerID(r.PathValue("id"))
 		if serverID < 0 {
 			utils.SendErrorJSON(w, "invalid server id", http.StatusBadRequest)
 			return
@@ -98,7 +98,7 @@ func GetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 
 func GetAllPrevLogs(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverID := utils.ValidateServerId(r.PathValue("id"))
+		serverID := utils.ValidateServerID(r.PathValue("id"))
 		if serverID < 0 {
 			utils.SendErrorJSON(w, "invalid server id", http.StatusBadRequest)
 			return

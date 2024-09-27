@@ -45,7 +45,7 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	}, servLoggers
 }
 
-func RunServer(serv *http.Server, ctx context.Context) {
+func RunServer(ctx context.Context, serv *http.Server) {
 	logger.Info(fmt.Sprintf("Starting server on :%d", config.Cfg.App.Port))
 	if err := serv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
 		logger.Error(err.Error(), err)

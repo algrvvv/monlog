@@ -6,8 +6,8 @@ import (
 	"github.com/algrvvv/monlog/internal/config"
 )
 
-func ValidateServerId(serverId string) int {
-	intID, err := strconv.Atoi(serverId)
+func ValidateServerID(serverID string) int {
+	intID, err := strconv.Atoi(serverID)
 	if err != nil {
 		return -1
 	}

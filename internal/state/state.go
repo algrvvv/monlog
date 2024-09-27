@@ -123,7 +123,7 @@ func InitializeState() error {
 		}
 
 		for id, state := range statesMap {
-			if state.status == true {
+			if state.status {
 				newStates = append(newStates, ServerData{
 					ID:             id,
 					LastNotifyTime: state.lastTimeNotify,
@@ -207,7 +207,7 @@ func (s *ServerState) generateNewStates() {
 	}
 }
 
-func GetLastNotifyTimeById(id int) string {
+func GetLastNotifyTimeByID(id int) string {
 	for _, server := range ServState.Srvs.Servers {
 		if server.ID == id {
 			return server.LastNotifyTime
@@ -217,7 +217,7 @@ func GetLastNotifyTimeById(id int) string {
 }
 
 func CompareLastNotifyTime(id int, newTimeStr string) bool {
-	lastTime := GetLastNotifyTimeById(id)
+	lastTime := GetLastNotifyTimeByID(id)
 	if lastTime == "" {
 		logger.Error("Got empty last time", nil)
 		return false

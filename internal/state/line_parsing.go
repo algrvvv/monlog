@@ -25,7 +25,7 @@ func generateDateTimeRegex(format string) string {
 	}
 
 	for key, value := range replacements {
-		format = strings.Replace(format, key, value, -1)
+		format = strings.ReplaceAll(format, key, value)
 	}
 
 	format = regexp.MustCompile(`[-/.:\s]`).ReplaceAllString(format, `\$0`)
@@ -43,14 +43,14 @@ func generateRegexFromLayout(layout, timeFormat string) (*regexp.Regexp, error) 
 	}
 
 	for key, value := range replacements {
-		layout = strings.Replace(layout, key, value, -1)
+		layout = strings.ReplaceAll(layout, key, value)
 	}
 
 	return regexp.Compile(layout)
 }
 
 func ParseLineAndSendNotify(sid int, line string) {
-	if n := utils.ValidateServerId(strconv.Itoa(sid)); n == -1 {
+	if n := utils.ValidateServerID(strconv.Itoa(sid)); n == -1 {
 		logger.Error("got invalid server id", nil)
 		return
 	}

@@ -88,11 +88,12 @@ func setDefaultSettings(s interface{}) {
 func translateError(err validator.ValidationErrors) map[string]string {
 	customErrMsg := make(map[string]string)
 	getErrorMsg := func(fieldError validator.FieldError) string {
-		if fieldError.Tag() == "required" {
+		switch fieldError.Tag() {
+		case "required":
 			return fmt.Sprintf("%s is required field [%s(%s)]", fieldError.StructField(), fieldError.Namespace(), fieldError.Kind())
-		} else if fieldError.Tag() == "checkHUP" {
+		case "checkHUP":
 			return fmt.Sprintf("If server is not local, his host, user and port required [%s]", fieldError.Namespace())
-		} else if fieldError.Tag() == "file" {
+		case "file":
 			return fmt.Sprintf("%s must be an existing file [%s]", fieldError.StructField(), fieldError.Namespace())
 		}
 		return fieldError.Error()

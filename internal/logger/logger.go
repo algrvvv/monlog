@@ -58,6 +58,7 @@ func fmtError(err error) slog.Value {
 func replaceAttr(_ []string, a slog.Attr) slog.Attr {
 	switch a.Value.Kind() {
 	case slog.KindAny:
+		// nolint
 		switch v := a.Value.Any().(type) {
 		case error:
 			a.Value = fmtError(v)
@@ -65,6 +66,7 @@ func replaceAttr(_ []string, a slog.Attr) slog.Attr {
 	case slog.KindTime:
 		t := a.Value.Time()
 		a.Value = slog.StringValue(t.Format("02.01.06 15:04:05"))
+	default:
 	}
 
 	return a

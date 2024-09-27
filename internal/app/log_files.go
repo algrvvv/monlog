@@ -32,6 +32,7 @@ func getHashedFilename(filename string) string {
 
 func NewLogFile(filename string, enabled bool) (*LogFile, error) {
 	if !enabled {
+		// nolint
 		return nil, nil
 	}
 
@@ -81,8 +82,12 @@ func (lf *LogFile) PushLineWithLimit(line string, limitMB int) error {
 		if err != nil {
 			return err
 		}
-		os.Remove(filename)
-		os.Rename(temp.Name(), filename)
+		if err = os.Remove(filename); err != nil {
+			return errors.New("Failed to remove old log file: " + err.Error())
+		}
+		if err = os.Rename(temp.Name(), filename); err != nil {
+			return errors.New("Failed to rename temp log file: " + err.Error())
+		}
 		lf.File, err = os.OpenFile(filename, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
 			return err

@@ -26,7 +26,7 @@ type ServerLogger struct {
 	config  config.ServerConfig // конфигурация сервера
 	client  *ssh.Client         // ссш клиент
 	session *ssh.Session        // ссш сессия
-	pipe    io.Reader           // канал для чтения новых логов
+	_       io.Reader           // канал для чтения новых логов (pipe)
 	wsConns []*websocket.Conn   // массив вебсокет соединений, которые должны получить данные
 	wsMutex sync.Mutex          // мьютекс для массива с вебсокетами
 	File    *LogFile            // локальный файл, в котором сохраняется часть логов с сервера
@@ -96,6 +96,7 @@ func (s *ServerLogger) connect() error {
 }
 
 // reconnect метод, который пытается переподключиться
+// nolint
 func (s *ServerLogger) reconnect(ctx context.Context) error {
 	s.MultiLog("Attempting to reconnect to remote server...")
 	for {
@@ -192,6 +193,9 @@ func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup
 				}
 				s.broadcastLine(line, currentLine)
 				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
+				if err != nil {
+					logger.Error("Failed to push line to file: "+err.Error(), err, slog.String("server", s.config.Name))
+				}
 				currentLine++
 			}
 
@@ -330,7 +334,7 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 }
 
 // broadcastLine метод для обработки новой строки при чтении с лог файла
-func (s *ServerLogger) broadcastLine(line string, currentLine int) {
+func (s *ServerLogger) broadcastLine(line string, _ int) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
 
