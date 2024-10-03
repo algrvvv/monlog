@@ -26,7 +26,7 @@ func NewTelegramSender() (*TelegramSender, error) {
 	if err != nil {
 		return nil, errors.New("telegram bot init fail" + err.Error())
 	}
-	bot.Debug = true // TODO сделать доп конфигурацию
+	bot.Debug = config.Cfg.App.Debug
 	return &TelegramSender{bot}, nil
 }
 
