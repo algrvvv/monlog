@@ -147,11 +147,11 @@ func LoadConfig(filepath string) error {
 	}
 	for i, server := range config.Servers {
 		if err = validateConfigPart(validate, server); err != nil {
-			log.Println(
-				fmt.Sprintf("[WARN] Server number %d ==> %v; This server will be forcibly disabled from the general list of servers", i, err),
+			log.Printf(
+				"[WARN] Server number %d ==> %v; This server will be forcibly disabled from the general list of servers", i, err,
 			)
 			config.Servers[i].Enabled = false
-			log.Println(fmt.Sprintf("[INFO] Server number %d is disabled ==> %v", i, config.Servers[i].Enabled))
+			log.Printf("[INFO] Server number %d is disabled ==> %v", i, config.Servers[i].Enabled)
 		}
 	}
 

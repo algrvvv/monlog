@@ -15,7 +15,7 @@ type TelegramSender struct {
 	Bot *tgbotapi.BotAPI
 }
 
-// NewTelegramSender функция для инициализации тг бота
+// NewTelegramSender функция для инициализации тг бота.
 func NewTelegramSender() (*TelegramSender, error) {
 	botToken := config.Cfg.App.TGBotToken
 	if botToken == "" {
@@ -31,8 +31,8 @@ func NewTelegramSender() (*TelegramSender, error) {
 }
 
 // Send метод notify.TelegramSender для отправки уведомления по средствам тг бота.
-// Для того, чтобы уведомление пришло - обзятаельно с учетной записи, айди которой вы указываете
-// в `chat_ids`, нужно написать /start боту, иначе он просто не сможет отправить вам уведомление
+// Для того, чтобы уведомление пришло - обязательно с учетной записи, айди которой вы указываете
+// в `chat_ids`, нужно написать /start боту, иначе он просто не сможет отправить вам уведомление.
 func (t TelegramSender) Send(server config.ServerConfig, message string) error {
 	chatIDs := server.ChatIDs
 	for _, chatID := range chatIDs {
