@@ -56,9 +56,9 @@ func fmtError(err error) slog.Value {
 }
 
 func replaceAttr(_ []string, a slog.Attr) slog.Attr {
+	// nolint
 	switch a.Value.Kind() {
 	case slog.KindAny:
-		// nolint
 		switch v := a.Value.Any().(type) {
 		case error:
 			a.Value = fmtError(v)
@@ -66,28 +66,51 @@ func replaceAttr(_ []string, a slog.Attr) slog.Attr {
 	case slog.KindTime:
 		t := a.Value.Time()
 		a.Value = slog.StringValue(t.Format("02.01.06 15:04:05"))
-	default:
 	}
 
 	return a
 }
 
+func tintReplaceAttr(_ []string, a slog.Attr) slog.Attr {
+	if a.Key == slog.LevelKey {
+		// Определяем цвет для каждого уровня
+		switch a.Value.String() {
+		case "DEBUG":
+			a.Value = slog.StringValue("\033[38;5;33mDEBUG\033[0m") // Синий для DEBUG
+		case "INFO":
+			a.Value = slog.StringValue("\033[38;5;2mINFO\033[0m") // Зеленый для INFO
+		case "WARN":
+			a.Value = slog.StringValue("\033[38;5;214mWARN\033[0m") // Оранжевый для WARN
+		case "ERROR":
+			a.Value = slog.StringValue("\033[38;5;9mERROR\033[0m") // Красный для ERROR
+		}
+	}
+	return a
+}
+
 var logger *slog.Logger
 
-func NewLogger(logfile string) error {
+func NewLogger(logfile string, debugLvl bool) error {
 	file, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
 
+	lvl := new(slog.LevelVar)
+	if debugLvl {
+		lvl.Set(slog.LevelDebug)
+	}
+
 	opts := &slog.HandlerOptions{
 		ReplaceAttr: replaceAttr,
+		Level:       lvl,
 	}
 
 	fileHandler := slog.NewJSONHandler(file, opts)
 	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
-		Level:      slog.LevelInfo,
-		TimeFormat: "02.01.06 15:04:05",
+		Level:       lvl,
+		TimeFormat:  "02.01.06 15:04:05",
+		ReplaceAttr: tintReplaceAttr,
 	})
 
 	buildinfo, _ := debug.ReadBuildInfo()
@@ -134,6 +157,11 @@ func Fatal(msg string, err error, args ...any) {
 func Infof(message string, args ...any) {
 	msg := fmt.Sprintf(message, args...)
 	logger.Info(msg)
+}
+
+func Debugf(message string, args ...any) {
+	msg := fmt.Sprintf(message, args...)
+	logger.Debug(msg)
 }
 
 func Warnf(message string, args ...any) {
