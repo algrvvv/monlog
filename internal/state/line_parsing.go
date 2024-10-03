@@ -40,6 +40,7 @@ func generateRegexFromLayout(layout, timeFormat string) (*regexp.Regexp, error) 
 		"%TIME%":    timeRegex,
 		"%LEVEL%":   `(?P<LEVEL>[A-Z]+)`,
 		"%MESSAGE%": `(?P<MESSAGE>.+)`,
+		"...":       `.*?`,
 	}
 
 	for key, value := range replacements {
