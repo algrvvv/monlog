@@ -17,13 +17,13 @@ import (
 )
 
 func main() {
-	err := logger.NewLogger("monlog.log")
+	err := config.LoadConfig("config.yml")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to load config", err)
 	}
 
-	if err = config.LoadConfig("config.yml"); err != nil {
-		logger.Fatal(err.Error(), err)
+	if err = logger.NewLogger("monlog.log", config.Cfg.App.Debug); err != nil {
+		log.Fatal("failed to init logger", err)
 	}
 
 	if err = state.InitializeState(); err != nil {
