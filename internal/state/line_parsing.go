@@ -64,7 +64,7 @@ func ParseLineAndSendNotify(sid int, line string) {
 
 	matches := regex.FindStringSubmatch(line)
 	if matches == nil {
-		logger.Info("No matches found for line: "+line, slog.Any("layout", sl.LogLayout),
+		logger.Debug("No matches found for line: "+line, slog.Any("layout", sl.LogLayout),
 			slog.Any("regex", regex))
 		return
 	}
