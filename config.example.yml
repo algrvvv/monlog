@@ -1,4 +1,5 @@
 app:
+  debug: false
   tg_bot_token: YOUR_TG_BOT_TOKEN       # токен вашего тг бота
   path_to_id_rsa: path/to/your/id_rsa   # путь до вашего id_rsa
   port: 8080                            # порт веб сервера
@@ -8,7 +9,7 @@ app:
 # любой параметр из настроек серверов можно вынести в общие настройки
 # внесенное поле можно переназначить для любого из серверов
 default_servers_setting:
-  log_levels: "(ERROR)"
+  log_levels: "ERROR"
   log_time_format: "YYYY-MM-DD hm:mm:ss"
 
 servers:
