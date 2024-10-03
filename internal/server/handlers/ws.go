@@ -37,7 +37,7 @@ func WsHandler(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 		logger.Info("ws connected")
 
 		servLogger := serverLoggers[loggerIndex]
-		logger.Info("got server: ", slog.Any("server", serverLoggers[loggerIndex]))
+		logger.Debug("got server: ", slog.Any("server", serverLoggers[loggerIndex]))
 		servLogger.AppendWSConnection(conn)
 		defer servLogger.RemoveWSConnection(conn)
 		defer conn.Close()
