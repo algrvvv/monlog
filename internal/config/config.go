@@ -77,7 +77,18 @@ func setDefaultSettings(s interface{}) {
 
 		if field.IsZero() {
 			if defaultValue, exists := DefaultSettings[fieldName]; exists {
-				field.Set(reflect.ValueOf(defaultValue))
+				switch defaultValue.(type) {
+				case []interface{}:
+					var result []string
+					for _, value := range defaultValue.([]interface{}) {
+						if v, ok := value.(string); ok {
+							result = append(result, v)
+						}
+					}
+					field.Set(reflect.ValueOf(result))
+				default:
+					field.Set(reflect.ValueOf(defaultValue))
+				}
 			}
 		}
 	}
