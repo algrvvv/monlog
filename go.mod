@@ -5,10 +5,12 @@ go 1.22.4
 require (
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/lmittmann/tint v1.0.5
 	github.com/mdobak/go-xerrors v0.3.1
 	github.com/samber/slog-multi v1.2.0
+	github.com/spf13/pflag v1.0.5
 	gitlab.com/metakeule/fmtdate v1.2.2
 	golang.org/x/crypto v0.26.0
 	gopkg.in/yaml.v3 v3.0.1
