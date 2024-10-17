@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
+
+	"github.com/algrvvv/monlog/internal/user"
 )
 
 type AppConfig struct {
@@ -19,6 +21,7 @@ type AppConfig struct {
 	Port              int    `yaml:"port" validate:"required"`
 	MaxLocalLogSizeMB int    `yaml:"max_local_log_size_mb" validate:"required"`
 	NumberRowsToLoad  int    `yaml:"number_rows_to_load" validate:"required"`
+	Auth              bool   `yaml:"auth"`
 }
 
 type ServerConfig struct {
@@ -77,6 +80,7 @@ func setDefaultSettings(s interface{}) {
 
 		if field.IsZero() {
 			if defaultValue, exists := DefaultSettings[fieldName]; exists {
+				//nolint:gocritic
 				switch defaultValue.(type) {
 				case []interface{}:
 					var result []string
@@ -164,6 +168,14 @@ func LoadConfig(filepath string) error {
 			config.Servers[i].Enabled = false
 			log.Printf("[INFO] Server number %d is disabled ==> %v", i, config.Servers[i].Enabled)
 		}
+	}
+
+	if config.App.Auth {
+		log.Println("[INFO] Auth enabled. User data search...")
+		if err = user.LoadUser(); err != nil {
+			return err
+		}
+		log.Println("[INFO] User data founded")
 	}
 
 	Cfg = config
