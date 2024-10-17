@@ -9,21 +9,37 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/spf13/pflag"
+
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/notify"
 	"github.com/algrvvv/monlog/internal/server"
 	"github.com/algrvvv/monlog/internal/state"
+	"github.com/algrvvv/monlog/internal/user"
 )
 
+var createUserFlag = pflag.BoolP("create-user", "c", false, "create a new user")
+
 func main() {
-	err := config.LoadConfig("config.yml")
-	if err != nil {
-		log.Fatal("failed to load config", err)
+	pflag.Parse()
+	if *createUserFlag {
+		if err := user.CreateUserConfigFile(); err != nil {
+			log.Fatal("failed to create user: ", err)
+		}
+		log.Println("[INFO] user successfully created")
+		return
 	}
 
+	err := config.LoadConfig("config.yml")
+	if err != nil {
+		log.Fatal("failed to load config: ", err)
+	}
+
+	logger.PrintLogo()
+
 	if err = logger.NewLogger("monlog.log", config.Cfg.App.Debug); err != nil {
-		log.Fatal("failed to init logger", err)
+		log.Fatal("failed to init logger: ", err)
 	}
 
 	if err = state.InitializeState(); err != nil {
