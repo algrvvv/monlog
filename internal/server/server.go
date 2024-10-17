@@ -24,6 +24,9 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	server := http.NewServeMux()
 
 	server.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// server.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	//	http.ServeFile(w, r, "static/favicon.ico")
+	// })
 
 	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/home", http.StatusFound)
@@ -35,13 +38,17 @@ func NewServer() (*http.Server, []*app.ServerLogger) {
 	v1.HandleFunc("GET /logs/prev/{id}", handlers.GetLinesByID(servLoggers))
 	v1.HandleFunc("GET /logs/prev/count/{id}", handlers.GetPrevLogsByCount(servLoggers))
 	v1.HandleFunc("GET /logs/prev/all/{id}", handlers.GetAllPrevLogs(servLoggers))
-	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 
+	server.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
 	server.HandleFunc("/ws/{id}", handlers.WsHandler(servLoggers))
+
+	server.HandleFunc("GET /login", handlers.LoginHandler)
+	server.HandleFunc("POST /login", handlers.Login)
+	wrappedAuthServer := middlewares.Auth(server)
 
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Cfg.App.Port),
-		Handler: middlewares.LogRequest(server),
+		Handler: middlewares.LogRequest(wrappedAuthServer),
 	}, servLoggers
 }
 
