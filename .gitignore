@@ -36,3 +36,5 @@ config.yml
 .certs
 state.yml
 state.yaml
+user.yml
+user.yaml
