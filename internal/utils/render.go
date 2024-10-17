@@ -13,9 +13,9 @@ type templateError struct {
 	StatusText string // текстовый статус ответа
 }
 
-// RenderError TODO - исправить
+// RenderError функция для рендеринга ошибок по шаблону
 func RenderError(w http.ResponseWriter, message string, statusCode int) {
-	temp, err := template.New("error").ParseFiles("templates/error.html")
+	temp, err := template.ParseFiles("templates/error.html")
 	if err != nil {
 		logger.Error(err.Error(), err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
