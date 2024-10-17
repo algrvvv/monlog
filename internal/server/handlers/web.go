@@ -9,6 +9,7 @@ import (
 
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
+	"github.com/algrvvv/monlog/internal/server/middlewares"
 	"github.com/algrvvv/monlog/internal/utils"
 )
 
@@ -75,4 +76,21 @@ func GetLogsByID(w http.ResponseWriter, r *http.Request) {
 	} else {
 		utils.RenderError(w, "Предоставлен некорректный айди сервера", http.StatusBadRequest)
 	}
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if !middlewares.Guest(r) {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	temp, err := template.ParseFiles("templates/login.html")
+	if err != nil {
+		logger.Errorf("failed to parse login page: %v", err)
+		utils.RenderError(w, "failed to parse page", http.StatusInternalServerError)
+		return
+	}
+
+	_ = temp.Execute(w, struct{}{})
 }
