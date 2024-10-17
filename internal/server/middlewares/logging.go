@@ -13,12 +13,25 @@ import (
 
 type wrappedResponseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode  int
+	wroteHeader bool
 }
 
 func (w *wrappedResponseWriter) WriteHeader(statusCode int) {
+	if w.wroteHeader {
+		return
+	}
+
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+	w.wroteHeader = true
+}
+
+func (w *wrappedResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
 }
 
 func (w *wrappedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
