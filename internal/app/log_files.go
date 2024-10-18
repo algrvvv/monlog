@@ -165,6 +165,10 @@ func (lf *LogFile) ReadLines(startLine, endLine int) []string {
 		return []string{}
 	}
 
+	if startLine < 0 {
+		startLine = 0
+	}
+
 	logger.Info(fmt.Sprintf("Reading lines from file: %s; %d/%d", lf.Name(), startLine, endLine))
 	scanner := bufio.NewScanner(lf.File)
 	var lines []string
