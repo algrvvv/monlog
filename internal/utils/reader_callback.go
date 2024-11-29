@@ -1,9 +1,12 @@
 package utils
 
-func ReaderCallback() func([]byte) []string {
+import drivers "github.com/algrvvv/monlog/internal/drivers/registry"
+
+func ReaderCallback(driver string) func([]byte) []string {
 	var lines []string
 	return func(data []byte) []string {
-		lines = append(lines, string(data))
+		line := drivers.Handle(driver, string(data))
+		lines = append(lines, line)
 		return lines
 	}
 }

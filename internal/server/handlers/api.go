@@ -28,7 +28,11 @@ func GetLinesByID(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			return
 		}
 		rows := config.Cfg.App.NumberRowsToLoad
-		content := serverLogger.File.ReadLines(total-rows, total)
+		content := serverLogger.File.ReadLines(
+			total-rows,
+			total,
+			config.Cfg.Servers[serverID].LogDriver,
+		)
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
@@ -74,13 +78,18 @@ func GetPrevLogsByCount(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			return
 		}
 
-		if startLine > endLine || startLine > total || endLine > total || startLine < 0 || endLine < 0 {
+		if startLine > endLine || startLine > total || endLine > total || startLine < 0 ||
+			endLine < 0 {
 			utils.SendErrorJSON(w, "one of the parameters is incorrect", http.StatusBadRequest)
 			logger.Error("one of the parameters is incorrect", nil)
 			return
 		}
 
-		lines := serverLogger.File.ReadLines(startLine, endLine)
+		lines := serverLogger.File.ReadLines(
+			startLine,
+			endLine,
+			config.Cfg.Servers[serverID].LogDriver,
+		)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		jsonData, err := json.Marshal(map[string]interface{}{
@@ -124,7 +133,7 @@ func GetAllPrevLogs(serverLoggers []*app.ServerLogger) http.HandlerFunc {
 			return
 		}
 
-		reader := utils.ReaderCallback()
+		reader := utils.ReaderCallback(config.Cfg.Servers[serverID].LogDriver)
 		serverLogger.File.ReadFullFile(targetLine, reader)
 
 		jsonData, err := json.Marshal(map[string]interface{}{

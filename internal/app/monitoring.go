@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/algrvvv/monlog/internal/config"
+	drivers "github.com/algrvvv/monlog/internal/drivers/registry"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/notify"
 )
@@ -337,6 +338,13 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 func (s *ServerLogger) broadcastLine(line string, _ int) {
 	s.wsMutex.Lock()
 	defer s.wsMutex.Unlock()
+	if s.config.LogDriver != "" {
+		line = drivers.Handle(s.config.LogDriver, line)
+	}
+
+	// if strings.Contains(s.config.LogDriver, "use drivers;") {
+	// 	line = drivers.Handle(s.config.LogDriver, line)
+	// }
 
 	// logger.Info("broadcasting line", slog.Any("connections", s.wsConns))
 	// go state.ParseLineAndSendNotify(s.ID, line)
