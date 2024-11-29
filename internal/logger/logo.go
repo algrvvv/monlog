@@ -17,7 +17,7 @@ func PrintLogo() {
 	bottom := fmt.Sprintf("└%s┘", line)
 
 	content := []string{
-		"Monlog v0.9.1",
+		"Monlog v0.9.7",
 		fmt.Sprintf("http://127.0.0.1:%d", config.Cfg.App.Port),
 		fmt.Sprintf("(bound on host 0.0.0.0 and port %d)", config.Cfg.App.Port),
 	}
