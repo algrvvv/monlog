@@ -13,7 +13,9 @@ app:
 # (такая настройка будет по умолчанию у всех серверов)
 # внесенное поле можно переназначить для любого из серверов
 default_servers_setting:
+  start_line: 0
   log_levels: "ERROR"
+  notify: false
   log_time_format: "YYYY-MM-DD hm:mm:ss"
   chat_ids: [ "YOUR_TG_CHAT_IDS_HERE" ]
 
@@ -41,7 +43,17 @@ servers:
     enabled: false
     name: First local server,Second local server # при указании нескольких серверов - указывать их через запятую
     is_local: true
-    notify: true
-    start_line: 0
     log_dir: path/to/your/first/file.log path/to/your/second/file.log
     log_layout: "lvl=%LEVEL% msg=%MESSAGE%"     # шаблон один, который работает на оба сервера
+
+  - id: 52
+    enabled: false
+    name: json logs 
+    is_local: true
+    log_dir: path/to/your/first/file.json 
+    log_driver: "json:your_custom_driver_name"
+    log_time_format: "YYYY-MM-DD hh:mm:ss"
+    log_levels: "WARNING|ERROR"
+    log_layout: "\\[%TIME%\\] %LEVEL% %MESSAGE%"
+
+

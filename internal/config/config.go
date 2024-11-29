@@ -17,28 +17,29 @@ import (
 type AppConfig struct {
 	Debug             bool   `yaml:"debug"`
 	TGBotToken        string `yaml:"tg_bot_token"`
-	PathToIDRSA       string `yaml:"path_to_id_rsa" validate:"required,file"`
-	Port              int    `yaml:"port" validate:"required"`
+	PathToIDRSA       string `yaml:"path_to_id_rsa"        validate:"required,file"`
+	Port              int    `yaml:"port"                  validate:"required"`
 	MaxLocalLogSizeMB int    `yaml:"max_local_log_size_mb" validate:"required"`
-	NumberRowsToLoad  int    `yaml:"number_rows_to_load" validate:"required"`
+	NumberRowsToLoad  int    `yaml:"number_rows_to_load"   validate:"required"`
 	Auth              bool   `yaml:"auth"`
 }
 
 type ServerConfig struct {
-	ID            int      `yaml:"id" validate:"required"`
+	ID            int      `yaml:"id"              validate:"required"`
 	Enabled       bool     `yaml:"enabled"`
-	Name          string   `yaml:"name" validate:"required"`
-	Host          string   `yaml:"host" validate:"-"`
-	User          string   `yaml:"user" validate:"-"`
-	Port          int      `yaml:"port" validate:"-"`
-	LogDir        string   `yaml:"log_dir" validate:"required"`
-	LogLayout     string   `yaml:"log_layout" validate:"required"`
-	LogLevel      string   `yaml:"log_levels" validate:"required"`
+	Name          string   `yaml:"name"            validate:"required"`
+	Host          string   `yaml:"host"            validate:"-"`
+	User          string   `yaml:"user"            validate:"-"`
+	Port          int      `yaml:"port"            validate:"-"`
+	LogDir        string   `yaml:"log_dir"         validate:"required"`
+	LogDriver     string   `yaml:"log_driver"      validate:"-"`
+	LogLayout     string   `yaml:"log_layout"      validate:"required"`
+	LogLevel      string   `yaml:"log_levels"      validate:"required"`
 	LogTimeFormat string   `yaml:"log_time_format" validate:"required"`
-	StartLine     string   `yaml:"start_line" validate:"required"`
-	ChatIDs       []string `yaml:"chat_ids" validate:"required"`
-	Notify        bool     `yaml:"notify" validate:"required"`
-	IsLocal       bool     `yaml:"is_local" validate:"checkHUP"`
+	StartLine     string   `yaml:"start_line"      validate:"required"`
+	ChatIDs       []string `yaml:"chat_ids"        validate:"required"`
+	Notify        bool     `yaml:"notify"          validate:"required"`
+	IsLocal       bool     `yaml:"is_local"        validate:"checkHUP"`
 }
 
 type DefaultServerConfig struct {
@@ -104,11 +105,23 @@ func translateError(err validator.ValidationErrors) map[string]string {
 	getErrorMsg := func(fieldError validator.FieldError) string {
 		switch fieldError.Tag() {
 		case "required":
-			return fmt.Sprintf("%s is required field [%s(%s)]", fieldError.StructField(), fieldError.Namespace(), fieldError.Kind())
+			return fmt.Sprintf(
+				"%s is required field [%s(%s)]",
+				fieldError.StructField(),
+				fieldError.Namespace(),
+				fieldError.Kind(),
+			)
 		case "checkHUP":
-			return fmt.Sprintf("If server is not local, his host, user and port required [%s]", fieldError.Namespace())
+			return fmt.Sprintf(
+				"If server is not local, his host, user and port required [%s]",
+				fieldError.Namespace(),
+			)
 		case "file":
-			return fmt.Sprintf("%s must be an existing file [%s]", fieldError.StructField(), fieldError.Namespace())
+			return fmt.Sprintf(
+				"%s must be an existing file [%s]",
+				fieldError.StructField(),
+				fieldError.Namespace(),
+			)
 		}
 		return fieldError.Error()
 	}
@@ -163,7 +176,9 @@ func LoadConfig(filepath string) error {
 	for i, server := range config.Servers {
 		if err = validateConfigPart(validate, server); err != nil {
 			log.Printf(
-				"[WARN] Server number %d ==> %v; This server will be forcibly disabled from the general list of servers", i, err,
+				"[WARN] Server number %d ==> %v; This server will be forcibly disabled from the general list of servers",
+				i,
+				err,
 			)
 			config.Servers[i].Enabled = false
 			log.Printf("[INFO] Server number %d is disabled ==> %v", i, config.Servers[i].Enabled)
