@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/algrvvv/monlog/internal/config"
+	_ "github.com/algrvvv/monlog/internal/drivers/custom"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/notify"
 	"github.com/algrvvv/monlog/internal/server"
