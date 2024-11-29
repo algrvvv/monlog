@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	drivers "github.com/algrvvv/monlog/internal/drivers/registry"
 	"github.com/algrvvv/monlog/internal/logger"
 )
 
@@ -38,7 +39,7 @@ func NewLogFile(filename string, enabled bool) (*LogFile, error) {
 
 	hashedFilename := getHashedFilename(filename)
 	path := fmt.Sprintf("logs/%s.log", hashedFilename)
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, errors.New("Failed to create log file: " + err.Error())
 	}
@@ -88,7 +89,7 @@ func (lf *LogFile) PushLineWithLimit(line string, limitMB int) error {
 		if err = os.Rename(temp.Name(), filename); err != nil {
 			return errors.New("Failed to rename temp log file: " + err.Error())
 		}
-		lf.File, err = os.OpenFile(filename, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+		lf.File, err = os.OpenFile(filename, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0o644)
 		if err != nil {
 			return err
 		}
@@ -155,7 +156,7 @@ func (lf *LogFile) ReadFullFile(targetLine int, callback func([]byte) []string) 
 }
 
 // ReadLines метод для чтения куска файла, начиная с `startLine` заканчивая `endLine`
-func (lf *LogFile) ReadLines(startLine, endLine int) []string {
+func (lf *LogFile) ReadLines(startLine, endLine int, driver string) []string {
 	lf.mu.Lock()
 	defer lf.mu.Unlock()
 
@@ -177,14 +178,15 @@ func (lf *LogFile) ReadLines(startLine, endLine int) []string {
 	for scanner.Scan() {
 		line++
 		if line >= startLine && line <= endLine {
-			lines = append(lines, scanner.Text())
+			line := drivers.Handle(driver, scanner.Text())
+			lines = append(lines, line)
 		}
 		if line > endLine {
 			break
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		logger.Error("error reading log file: "+err.Error(), err)
 	}
 
@@ -196,7 +198,7 @@ func (lf *LogFile) ReadLines(startLine, endLine int) []string {
 	return lines
 }
 
-func (lf *LogFile) CLoseAndRemove() error {
+func (lf *LogFile) CloseAndRemove() error {
 	lf.mu.Lock()
 	defer lf.mu.Unlock()
 
