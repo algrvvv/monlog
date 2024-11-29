@@ -163,25 +163,41 @@ func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup
 			cmd := exec.CommandContext(ctx, "sh", "-c", command)
 			defer func() {
 				if err := cmd.Wait(); err != nil {
-					logger.Error("Failed to wait command: "+err.Error(), err, slog.String("server", s.config.Name))
+					logger.Error(
+						"Failed to wait command: "+err.Error(),
+						err,
+						slog.String("server", s.config.Name),
+					)
 				}
 			}()
 
 			stdout, err := cmd.StdoutPipe()
 			if err != nil {
-				logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
+				logger.Error(
+					"Failed to get stdout pipe: "+err.Error(),
+					err,
+					slog.String("server", s.config.Name),
+				)
 				return
 			}
 
 			if err = cmd.Start(); err != nil {
-				logger.Error("Failed to start command: "+err.Error(), err, slog.String("server", s.config.Name))
+				logger.Error(
+					"Failed to start command: "+err.Error(),
+					err,
+					slog.String("server", s.config.Name),
+				)
 				return
 			}
 
 			scanner := bufio.NewScanner(stdout)
 			currentLine, err := strconv.Atoi(s.config.StartLine)
 			if err != nil {
-				logger.Error("Failed to parse start line: "+err.Error(), err, slog.String("server", s.config.Name))
+				logger.Error(
+					"Failed to parse start line: "+err.Error(),
+					err,
+					slog.String("server", s.config.Name),
+				)
 				return
 			}
 
@@ -195,13 +211,21 @@ func (s *ServerLogger) startLocalLogging(ctx context.Context, wg *sync.WaitGroup
 				s.broadcastLine(line, currentLine)
 				err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB)
 				if err != nil {
-					logger.Error("Failed to push line to file: "+err.Error(), err, slog.String("server", s.config.Name))
+					logger.Error(
+						"Failed to push line to file: "+err.Error(),
+						err,
+						slog.String("server", s.config.Name),
+					)
 				}
 				currentLine++
 			}
 
 			if err = scanner.Err(); err != nil {
-				logger.Error("Failed to scan stdout: "+err.Error(), err, slog.String("server", s.config.Name))
+				logger.Error(
+					"Failed to scan stdout: "+err.Error(),
+					err,
+					slog.String("server", s.config.Name),
+				)
 			}
 		}()
 	}
@@ -245,7 +269,11 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 			session, err = s.client.NewSession()
 			if err != nil {
 				s.client.Close()
-				logger.Error("Failed to create session: "+err.Error(), err, slog.String("server", s.config.Host))
+				logger.Error(
+					"Failed to create session: "+err.Error(),
+					err,
+					slog.String("server", s.config.Host),
+				)
 				return
 			}
 
@@ -253,7 +281,11 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 			if err != nil {
 				s.client.Close()
 				session.Close()
-				logger.Error("Failed to get stdout pipe: "+err.Error(), err, slog.String("server", s.config.Name))
+				logger.Error(
+					"Failed to get stdout pipe: "+err.Error(),
+					err,
+					slog.String("server", s.config.Name),
+				)
 				return
 			}
 
@@ -264,7 +296,11 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 			cmd := fmt.Sprintf("tail -n +%s -f %s", startLine, file)
 
 			if err = session.Start(cmd); err != nil {
-				logger.Error("Command start failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				logger.Error(
+					"Command start failed: "+err.Error(),
+					err,
+					slog.Any("server", s.config.Host),
+				)
 				return
 			}
 
@@ -272,7 +308,11 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 			done := make(chan struct{})
 			currentLine, err = strconv.Atoi(s.config.StartLine)
 			if err != nil {
-				logger.Error("Parse start line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+				logger.Error(
+					"Parse start line failed: "+err.Error(),
+					err,
+					slog.Any("server", s.config.Host),
+				)
 				return
 			}
 
@@ -287,12 +327,20 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 					}
 					s.broadcastLine(line, currentLine)
 					if err = s.File.PushLineWithLimit(line, config.Cfg.App.MaxLocalLogSizeMB); err != nil {
-						logger.Error("Push line failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+						logger.Error(
+							"Push line failed: "+err.Error(),
+							err,
+							slog.Any("server", s.config.Host),
+						)
 					}
 					currentLine++
 				}
 				if err = scanner.Err(); err != nil {
-					logger.Error("Scanner failed: "+err.Error(), err, slog.Any("server", s.config.Host))
+					logger.Error(
+						"Scanner failed: "+err.Error(),
+						err,
+						slog.Any("server", s.config.Host),
+					)
 				} else {
 					logger.Info("Scanner finished", slog.Any("server", s.config.Host))
 				}
@@ -300,18 +348,31 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 
 			select {
 			case <-ctx.Done():
-				logger.Info("Getting signal, stopping session...", slog.Any("server", s.config.Host))
+				logger.Info(
+					"Getting signal, stopping session...",
+					slog.Any("server", s.config.Host),
+				)
 				if err = session.Signal(ssh.SIGTERM); err != nil {
-					logger.Warn("Failed to send SIGTERM to server", slog.Any("server", s.config.Host))
+					logger.Warn(
+						"Failed to send SIGTERM to server",
+						slog.Any("server", s.config.Host),
+					)
 				}
 
 				select {
 				case <-done:
 					logger.Info("Session closed by SIGTERM", slog.Any("server", s.config.Host))
 				case <-time.After(5 * time.Second):
-					logger.Warn("Session dont closed by SIGTERM, trying SIGKILL...", slog.Any("server", s.config.Host))
+					logger.Warn(
+						"Session dont closed by SIGTERM, trying SIGKILL...",
+						slog.Any("server", s.config.Host),
+					)
 					if err = session.Signal(ssh.SIGKILL); err != nil {
-						logger.Error("Failed to send SIGKILL to server", err, slog.Any("server", s.config.Host))
+						logger.Error(
+							"Failed to send SIGKILL to server",
+							err,
+							slog.Any("server", s.config.Host),
+						)
 					}
 
 					// код ниже можно оставить, хотя по итогу на одном из серверов даже через килл процесс не завершался
@@ -327,7 +388,10 @@ func (s *ServerLogger) startRemoteLogging(ctx context.Context, wg *sync.WaitGrou
 					// }
 				}
 			case <-done:
-				logger.Info("Command has been finished successfully", slog.Any("server", s.config.Host))
+				logger.Info(
+					"Command has been finished successfully",
+					slog.Any("server", s.config.Host),
+				)
 			}
 		}()
 	}
@@ -366,7 +430,7 @@ func (s *ServerLogger) MultiLog(message string, args ...any) {
 
 func (s *ServerLogger) deleteLocalLogs() {
 	logger.Info("Start delete local log file", slog.Any("server", s.config.Host))
-	err := s.File.CLoseAndRemove()
+	err := s.File.CloseAndRemove()
 	if err != nil {
 		logger.Error("Failed to close log file: "+err.Error(), err)
 	} else {
