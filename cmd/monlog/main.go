@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -15,6 +17,7 @@ import (
 	_ "github.com/algrvvv/monlog/internal/drivers/custom"
 	"github.com/algrvvv/monlog/internal/logger"
 	"github.com/algrvvv/monlog/internal/notify"
+	_ "github.com/algrvvv/monlog/internal/notify/drivers"
 	"github.com/algrvvv/monlog/internal/server"
 	"github.com/algrvvv/monlog/internal/state"
 	"github.com/algrvvv/monlog/internal/user"
@@ -47,10 +50,6 @@ func main() {
 		logger.Fatal(err.Error(), err)
 	}
 
-	if err = notify.LoadSenders(); err != nil {
-		logger.Fatal(err.Error(), err)
-	}
-
 	notify.InitNotifier()
 	go notify.Notifier.HandleNewItem(state.ParseLineAndSendNotify)
 
@@ -70,7 +69,9 @@ func main() {
 	go func() {
 		logger.Info(fmt.Sprintf("Starting server on :%d", config.Cfg.App.Port))
 		if err = serv.ListenAndServe(); err != nil {
-			logger.Error(err.Error(), err)
+			if !errors.Is(err, http.ErrServerClosed) {
+				logger.Error(err.Error(), err)
+			}
 		}
 	}()
 
@@ -82,7 +83,9 @@ func main() {
 
 	logger.Info("Server shutting down...")
 	if err = serv.Shutdown(ctx); err != nil {
-		logger.Error(err.Error(), err)
+		if !errors.Is(err, http.ErrServerClosed) {
+			logger.Error(err.Error(), err)
+		}
 		return
 	}
 
