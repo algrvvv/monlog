@@ -1,25 +1,64 @@
 package notify
 
-// Telegram переменная, которая сохраняет в себе уже
-// сконфигурированный тг бот для отправки уведомления.
-// Используйте его для отправки уведомлений в методе notify.SendNotification
-// Usage:
-//
-//	if err = notify.SendNotification(notify.Telegram, server, msg); err != nil {
-//		logger.Error("Error sending notification: "+err.Error(), err)
-//	}
-var Telegram *TelegramSender
+import (
+	"strings"
 
-// LoadSenders функция для инициализации возможных способов отправки данных.
-// Для добавления новых создайте в этом пакете новый файл, создайте структуру,
-// которая реализует интерфейс notify.NotificationSender.
-// А затем также как и с тг добавить константу и в функцию отправки данных
-// передать вместо notify.Telegram свою переменную.
-func LoadSenders() error {
-	bot, err := NewTelegramSender()
-	if err != nil {
-		return err
+	"github.com/algrvvv/monlog/internal/config"
+)
+
+// структура ошибки с динамическим полем названия драйвера
+type ErrDriverNotFound struct {
+	driverName string
+}
+
+func (e *ErrDriverNotFound) Error() string {
+	return "driver not found: " + e.driverName
+}
+
+type DriverFactory func() NotificationSender
+
+var drivers = make(map[string]NotificationSender)
+
+// RegisterDriver функция для регистрации нового драйвера для уведомления пользователя
+// о каком то событии на сервере.
+// Параметры:
+//
+//	name - название драйвера
+//	lazyLoad - перед загрузкой дождаться загрузки конфигурации
+//	factory - функция для подготовки и загрузке вашего драйвера
+func RegisterDriver(name string, lazyLoad bool, factory DriverFactory) {
+	if _, ok := drivers[name]; ok {
+		panic("Driver already registered: " + name)
 	}
-	Telegram = bot
-	return nil
+
+	if !lazyLoad {
+		drivers[name] = factory()
+		return
+	}
+
+	go func() {
+		nCh := make(chan struct{})
+
+		err := config.AddSubscriber(nCh)
+		if err == nil {
+			<-nCh
+		}
+
+		drivers[name] = factory()
+	}()
+}
+
+// Notify функция для отправки нового уведомления.
+// Самостоятельно проверяет состояние и наличие нужного драйвера
+func Notify(n *Notification) error {
+	driverName := strings.TrimSpace(n.Server.Notify)
+	if driverName == "" || driverName == "none" {
+		return nil
+	}
+
+	if driver, ok := drivers[driverName]; ok {
+		return driver.Send(n)
+	}
+
+	return &ErrDriverNotFound{driverName: driverName}
 }
