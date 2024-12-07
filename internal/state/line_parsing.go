@@ -78,12 +78,15 @@ func ParseLineAndSendNotify(sid int, line string) {
 		}
 	}
 
-	if sl.Notify && isAlertLevel(values["LEVEL"], sl.LogLevel) && CompareLastNotifyTime(sl.ID, values["TIME"]) {
-		msg := fmt.Sprintf(
-			"[%d] <u>%s</u>\n<b>Время:</b> %s\n<b>Уровень:</b> %s\n<b>Сообщение:</b> %s\n<b>Полная строка:</b> %s",
-			sl.ID, sl.Name, values["TIME"], values["LEVEL"], values["MESSAGE"], line)
-		if err = notify.SendNotification(notify.Telegram, sl, msg); err != nil {
-			logger.Error("Error sending notification: "+err.Error(), err)
+	if (sl.Notify != "" && sl.Notify != "none") && isAlertLevel(values["LEVEL"], sl.LogLevel) &&
+		CompareLastNotifyTime(sl.ID, values["TIME"]) {
+		notification := &notify.Notification{
+			Server: &sl, Log: line, Message: values["MESSAGE"],
+			Time: values["TIME"], Level: values["LEVEL"],
+		}
+
+		if err = notify.Notify(notification); err != nil {
+			logger.Errorf("Error sending notification: %s", err)
 		}
 		if err = UpdateLastNotifyTime(sl.ID, values["TIME"]); err != nil {
 			logger.Error("Error updating last notify time: "+err.Error(), err, slog.Any("time", values["TIME"]))
