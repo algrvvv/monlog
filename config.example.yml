@@ -15,9 +15,9 @@ app:
 default_servers_setting:
   start_line: 0
   log_levels: "ERROR"
-  notify: false
+  notify: "telegram"
   log_time_format: "YYYY-MM-DD hm:mm:ss"
-  chat_ids: [ "YOUR_TG_CHAT_IDS_HERE" ]
+  recipients: [ "YOUR_TG_CHAT_IDS_HERE" ]
 
 servers:
   - id: 0                                       # айди может быть произвольным (id >= 0)
@@ -27,7 +27,7 @@ servers:
     port: 22                                    # порт для подключения
     user: root                                  # пользователь для подключения
                                                 # (см. README.md чтобы узнать, что нужно для входа на удаленный сервер)
-    notify: true                                # отправлять уведомления при указанном уровне лога (см. `log_levels`)
+    notify: "mb_your_driver"                    # отправлять уведомления при указанном уровне лога (см. `log_levels`)
     is_local: false                             # локальный сервер или удаленный
     start_line: 0                               # строка с которой начинается чтение логов
     log_dir: path/to/your/file.log              # путь к файлу с логами
@@ -35,7 +35,7 @@ servers:
     log_levels: "ERROR|WARN"                    # уровни логов при котором нужно делать оповещение
                                                 # при нескольких уровнях - указывайте через '|'
     log_time_format: "DD.MM.YYYY hh:mm"         # формат времени в строке логов
-    chat_ids: [ "ANOTHER_TG_CHAT_IDS" ]         # айди чатов, которым будут приходить уведомления
+    recipients: [ "ANOTHER_TG_CHAT_IDS" ]         # айди чатов, которым будут приходить уведомления
 
   # пример подключения нескольких локальных лог файлов
   # такая же логика работает и для удаленных серверов
@@ -51,7 +51,7 @@ servers:
     name: json logs 
     is_local: true
     log_dir: path/to/your/first/file.json 
-    log_driver: "json:your_custom_driver_name"
+    log_driver: "your_custom_driver_name"
     log_time_format: "YYYY-MM-DD hh:mm:ss"
     log_levels: "WARNING|ERROR"
     log_layout: "\\[%TIME%\\] %LEVEL% %MESSAGE%"
