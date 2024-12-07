@@ -195,6 +195,8 @@ func LoadConfig(filepath string) error {
 	}
 
 	Cfg = config
+	go notifySubscibers()
+
 	log.Println("[INFO] config successfully loaded")
 	return nil
 }
