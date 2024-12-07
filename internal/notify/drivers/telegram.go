@@ -1,7 +1,9 @@
-package notify
+package notification_drivers
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"log/slog"
 	"strconv"
 
@@ -9,14 +11,29 @@ import (
 
 	"github.com/algrvvv/monlog/internal/config"
 	"github.com/algrvvv/monlog/internal/logger"
+	"github.com/algrvvv/monlog/internal/notify"
 )
+
+func init() {
+	log.Println("[INFO] load telegram notification driver")
+
+	notify.RegisterDriver("telegram", true, func() notify.NotificationSender {
+		bot, err := NewTelegramSender()
+		if err != nil {
+			log.Fatalf("failed to load telegram notification driver: %v", err)
+		}
+
+		log.Println("[INFO] telegram notification driver loaded")
+		return bot
+	})
+}
 
 type TelegramSender struct {
 	Bot *tgbotapi.BotAPI
 }
 
 // NewTelegramSender функция для инициализации тг бота.
-func NewTelegramSender() (*TelegramSender, error) {
+func NewTelegramSender() (notify.NotificationSender, error) {
 	botToken := config.Cfg.App.TGBotToken
 	if botToken == "" {
 		return nil, errors.New("telegram bot token is empty")
@@ -33,20 +50,38 @@ func NewTelegramSender() (*TelegramSender, error) {
 // Send метод notify.TelegramSender для отправки уведомления по средствам тг бота.
 // Для того, чтобы уведомление пришло - обязательно с учетной записи, айди которой вы указываете
 // в `chat_ids`, нужно написать /start боту, иначе он просто не сможет отправить вам уведомление.
-func (t TelegramSender) Send(server config.ServerConfig, message string) error {
-	chatIDs := server.ChatIDs
+func (t TelegramSender) Send(n *notify.Notification) error {
+	message := fmt.Sprintf(
+		"[%d] <u>%s</u>\n<b>Время:</b> %s\n<b>Уровень:</b> %s\n<b>Сообщение:</b> %s\n<b>Полная строка:</b> %s",
+		n.Server.ID,
+		n.Server.Name,
+		n.Time,
+		n.Level,
+		n.Message,
+		n.Log,
+	)
+
+	chatIDs := n.Server.Recipients
 	for _, chatID := range chatIDs {
 		go func() {
 			id, err := strconv.ParseInt(chatID, 10, 64)
 			if err != nil {
-				logger.Error("Failed to convert chat id: "+err.Error(), err, slog.Any("chat_id", chatID))
+				logger.Error(
+					"Failed to convert chat id: "+err.Error(),
+					err,
+					slog.Any("chat_id", chatID),
+				)
 				return
 			}
 			msg := tgbotapi.NewMessage(id, message)
 			msg.ParseMode = tgbotapi.ModeHTML
 			_, err = t.Bot.Send(msg)
 			if err != nil {
-				logger.Error("Failed to send message: "+err.Error(), err, slog.Any("chat_id", chatID))
+				logger.Error(
+					"Failed to send message: "+err.Error(),
+					err,
+					slog.Any("chat_id", chatID),
+				)
 				return
 			}
 			logger.Info("Telegram notify successfully sent")
