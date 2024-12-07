@@ -37,8 +37,8 @@ type ServerConfig struct {
 	LogLevel      string   `yaml:"log_levels"      validate:"required"`
 	LogTimeFormat string   `yaml:"log_time_format" validate:"required"`
 	StartLine     string   `yaml:"start_line"      validate:"required"`
-	ChatIDs       []string `yaml:"chat_ids"        validate:"required"`
-	Notify        bool     `yaml:"notify"          validate:"required"`
+	Recipients    []string `yaml:"recipients"      validate:"required"`
+	Notify        string   `yaml:"notify"          validate:"-"`
 	IsLocal       bool     `yaml:"is_local"        validate:"checkHUP"`
 }
 
@@ -48,8 +48,9 @@ type DefaultServerConfig struct {
 	LogLayout     string   `yaml:"log_layout"`
 	LogLevel      string   `yaml:"log_levels"`
 	LogTimeFormat string   `yaml:"log_time_format"`
-	ChatIDs       []string `yaml:"chat_ids"`
-	Notify        bool     `yaml:"notify"`
+	Recipients    []string `yaml:"recipients"`
+	// none or notification driver name (if not found => none)
+	Notify string `yaml:"notify"`
 }
 
 type Config struct {
@@ -186,7 +187,7 @@ func LoadConfig(filepath string) error {
 	}
 
 	if config.App.Auth {
-		log.Println("[INFO] Auth enabled. User data search...")
+		log.Println("[INFO] Auth enabled. Search user data...")
 		if err = user.LoadUser(); err != nil {
 			return err
 		}
