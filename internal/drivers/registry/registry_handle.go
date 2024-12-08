@@ -13,7 +13,7 @@ var drivers = make(map[string]types.LineHandleDriver)
 
 func RegisterDriver(name string, factory DriverFactory) {
 	if _, ok := drivers[name]; ok {
-		panic("Driver factory already registered: " + name)
+		panic("Driver already registered: " + name)
 	}
 	drivers[name] = factory()
 }

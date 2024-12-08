@@ -58,7 +58,10 @@ func ParseLineAndSendNotify(sid int, line string) {
 	sl := config.Cfg.Servers[sid]
 	regex, err := generateRegexFromLayout(sl.LogLayout, sl.LogTimeFormat)
 	if err != nil {
-		logger.Warn("Failed to generate regex from layout: "+err.Error(), slog.Any("layout", sl.LogLayout))
+		logger.Warn(
+			"Failed to generate regex from layout: "+err.Error(),
+			slog.Any("layout", sl.LogLayout),
+		)
 		return
 	}
 
@@ -69,7 +72,7 @@ func ParseLineAndSendNotify(sid int, line string) {
 		return
 	}
 
-	var values = make(map[string]string)
+	values := make(map[string]string)
 	names := regex.SubexpNames()
 	for i, match := range matches {
 		if i > 0 && i < len(names) && match != "" {
@@ -89,7 +92,11 @@ func ParseLineAndSendNotify(sid int, line string) {
 			logger.Errorf("Error sending notification: %s", err)
 		}
 		if err = UpdateLastNotifyTime(sl.ID, values["TIME"]); err != nil {
-			logger.Error("Error updating last notify time: "+err.Error(), err, slog.Any("time", values["TIME"]))
+			logger.Error(
+				"Error updating last notify time: "+err.Error(),
+				err,
+				slog.Any("time", values["TIME"]),
+			)
 		}
 	}
 }
