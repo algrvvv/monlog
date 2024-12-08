@@ -56,7 +56,7 @@ func Notify(n *Notification) error {
 		return nil
 	}
 
-	if driver, ok := drivers[driverName]; ok {
+	if driver, ok := drivers[driverName]; ok && driver != nil {
 		return driver.Send(n)
 	}
 
