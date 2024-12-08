@@ -1,4 +1,4 @@
-package notification_drivers
+package drivers
 
 import (
 	"errors"

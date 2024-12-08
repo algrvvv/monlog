@@ -1,11 +1,11 @@
-package custom_drivers
+package drivers
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/algrvvv/monlog/internal/drivers/registry"
+	drivers "github.com/algrvvv/monlog/internal/drivers/registry"
 	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/types"
 )

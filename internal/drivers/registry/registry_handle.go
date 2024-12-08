@@ -23,9 +23,9 @@ func Handle(driverName, line string) string {
 		return line
 	}
 
-	// driverName = strings.TrimPrefix(driverName, "use drivers;")
 	driverName = strings.TrimSpace(driverName)
 
+	//nolint:revive
 	if driver, ok := drivers[driverName]; !ok {
 		fmt.Printf("WARNING! driver with name %s not found\n", driverName)
 		return line

@@ -13,7 +13,7 @@ const (
 	levelError = "[\033[38;5;9mERROR\033[0m]"
 )
 
-func print(level string, args ...any) {
+func printLog(level string, args ...any) {
 	log.SetPrefix(level + " ")
 	log.Println(args...)
 	log.SetPrefix("")
@@ -21,38 +21,38 @@ func print(level string, args ...any) {
 
 func PrintInfof(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	print(levelInfo, message)
+	printLog(levelInfo, message)
 }
 
 func PrintInfo(args ...any) {
-	print(levelInfo, args...)
+	printLog(levelInfo, args...)
 }
 
 func PrintFatal(args ...any) {
-	print(levelError, args...)
+	printLog(levelError, args...)
 	os.Exit(1)
 }
 
 func PrintFatalf(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	print(levelError, message)
+	printLog(levelError, message)
 	os.Exit(1)
 }
 
 func PrintError(args ...any) {
-	print(levelError, args...)
+	printLog(levelError, args...)
 }
 
 func PrintErrorf(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	print(levelError, message)
+	printLog(levelError, message)
 }
 
 func PrintWarn(args ...any) {
-	print(levelWarn, args...)
+	printLog(levelWarn, args...)
 }
 
 func PrintWarnf(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	print(levelWarn, message)
+	printLog(levelWarn, message)
 }

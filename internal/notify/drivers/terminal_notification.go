@@ -1,4 +1,4 @@
-package notification_drivers
+package drivers
 
 import (
 	"errors"
@@ -31,7 +31,7 @@ type TerminalNotifier struct{}
 // отправителя уведомлений. Перед загрузкой идет проверка на наличие нужной утилиты
 // с помощью которой и происходит уведомление
 func NewTerminalNotifier() (notify.NotificationSender, error) {
-	cmd := exec.Command("which", "terminal-notifierrrr")
+	cmd := exec.Command("which", "terminal-notifier")
 	if err := cmd.Run(); err != nil {
 		return nil, errors.New("util for notify not install")
 	}
