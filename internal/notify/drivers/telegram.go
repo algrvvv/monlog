@@ -3,27 +3,27 @@ package notification_drivers
 import (
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"github.com/algrvvv/monlog/internal/config"
-	"github.com/algrvvv/monlog/internal/logger"
+	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/notify"
 )
 
 func init() {
-	log.Println("[INFO] load telegram notification driver")
+	log.PrintInfo("load telegram notification driver")
 
 	notify.RegisterDriver("telegram", true, func() notify.NotificationSender {
 		bot, err := NewTelegramSender()
 		if err != nil {
-			log.Fatalf("failed to load telegram notification driver: %v", err)
+			log.PrintFatalf("failed to load telegram notification driver: %v", err)
+			return nil
 		}
 
-		log.Println("[INFO] telegram notification driver loaded")
+		log.PrintInfo("telegram notification driver loaded")
 		return bot
 	})
 }
@@ -66,7 +66,7 @@ func (t TelegramSender) Send(n *notify.Notification) error {
 		go func() {
 			id, err := strconv.ParseInt(chatID, 10, 64)
 			if err != nil {
-				logger.Error(
+				log.PrintError(
 					"Failed to convert chat id: "+err.Error(),
 					err,
 					slog.Any("chat_id", chatID),
@@ -77,14 +77,14 @@ func (t TelegramSender) Send(n *notify.Notification) error {
 			msg.ParseMode = tgbotapi.ModeHTML
 			_, err = t.Bot.Send(msg)
 			if err != nil {
-				logger.Error(
+				log.PrintError(
 					"Failed to send message: "+err.Error(),
 					err,
 					slog.Any("chat_id", chatID),
 				)
 				return
 			}
-			logger.Info("Telegram notify successfully sent")
+			log.PrintInfo("Telegram notify successfully sent")
 		}()
 	}
 	return nil

@@ -3,10 +3,10 @@ package custom_drivers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/algrvvv/monlog/internal/drivers/registry"
+	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/types"
 )
 
@@ -16,11 +16,11 @@ type LaravelJSONDriver struct {
 
 func init() {
 	// NOTE: для его использования в конфигурации нужного сервера укажите "log_driver": "json:laravel"
-	log.Println("[INFO] load laravel json driver")
+	log.PrintInfo("load laravel json driver")
 	drivers.RegisterDriver("json:laravel", func() types.LineHandleDriver {
 		return NewLaravelJSONDriver()
 	})
-	log.Println("[INFO] laravel json driver loaded")
+	log.PrintInfo("laravel json driver loaded")
 }
 
 // создаем струтуру json, которую мы ожидаем получить и заанмаршлить.
@@ -53,7 +53,7 @@ func (l LaravelJSONDriver) GetName() string {
 func (l LaravelJSONDriver) Handle(j string) string {
 	var out laravelJSON
 	if err := json.Unmarshal([]byte(j), &out); err != nil {
-		log.Printf("driver:%s: failed to unmarshal string: %s: %v\n", l.GetName(), j, err)
+		log.PrintErrorf("driver:%s: failed to unmarshal string: %s: %v\n", l.GetName(), j, err)
 		return j
 	}
 

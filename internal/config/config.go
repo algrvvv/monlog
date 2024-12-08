@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 
+	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/user"
 )
 
@@ -140,7 +140,7 @@ func validateConfigPart(validate *validator.Validate, s interface{}) error {
 		errors.As(err, &validationErrors)
 		customErrMsg := translateError(validationErrors)
 		for _, message := range customErrMsg {
-			log.Printf("[WARN] config validation error: %s", message)
+			log.PrintWarnf("config validation error: %s", message)
 		}
 		return errors.New("failed to parse config.yml")
 	}
@@ -172,31 +172,31 @@ func LoadConfig(filepath string) error {
 	_ = validate.RegisterValidation("checkHUP", checkHUPValidator)
 
 	if err = validateConfigPart(validate, config.App); err != nil {
-		log.Fatal(err)
+		log.PrintFatal(err)
 	}
 	for i, server := range config.Servers {
 		if err = validateConfigPart(validate, server); err != nil {
-			log.Printf(
-				"[WARN] Server number %d ==> %v; This server will be forcibly disabled from the general list of servers",
+			log.PrintWarnf(
+				"Server number %d ==> %v; This server will be forcibly disabled from the general list of servers",
 				i,
 				err,
 			)
 			config.Servers[i].Enabled = false
-			log.Printf("[INFO] Server number %d is disabled ==> %v", i, config.Servers[i].Enabled)
+			log.PrintInfof("Server number %d is disabled ==> %v", i, config.Servers[i].Enabled)
 		}
 	}
 
 	if config.App.Auth {
-		log.Println("[INFO] Auth enabled. Search user data...")
+		log.PrintInfo("Auth enabled. Search user data...")
 		if err = user.LoadUser(); err != nil {
 			return err
 		}
-		log.Println("[INFO] User data founded")
+		log.PrintInfo("User data founded")
 	}
 
 	Cfg = config
 	go notifySubscibers()
 
-	log.Println("[INFO] config successfully loaded")
+	log.PrintInfo("config successfully loaded")
 	return nil
 }

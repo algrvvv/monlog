@@ -1,21 +1,28 @@
 package notification_drivers
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 
+	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/notify"
 )
 
 func init() {
-	log.Println("[INFO] load terminal notifier")
+	log.PrintInfo("load terminal notifier")
 
 	notify.RegisterDriver("terminal", false, func() notify.NotificationSender {
-		return NewTerminalNotifier()
+		tn, err := NewTerminalNotifier()
+		if err != nil {
+			log.PrintErrorf("failed to load terminal notifier: %v", err)
+			return nil
+		}
+
+		return tn
 	})
 
-	log.Println("[INFO] terminal notifier loaded")
+	log.PrintInfo("terminal notifier loaded")
 }
 
 type TerminalNotifier struct{}
@@ -23,13 +30,13 @@ type TerminalNotifier struct{}
 // NewTerminalNotifier функция для загрузки нового терминального
 // отправителя уведомлений. Перед загрузкой идет проверка на наличие нужной утилиты
 // с помощью которой и происходит уведомление
-func NewTerminalNotifier() notify.NotificationSender {
-	cmd := exec.Command("which", "terminal-notifier")
+func NewTerminalNotifier() (notify.NotificationSender, error) {
+	cmd := exec.Command("which", "terminal-notifierrrr")
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("failed to load terminal notifier: %v", err)
+		return nil, errors.New("util for notify not install")
 	}
 
-	return &TerminalNotifier{}
+	return &TerminalNotifier{}, nil
 }
 
 // Send метод, который отправляет уведомление через утилиту
