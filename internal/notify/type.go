@@ -3,15 +3,20 @@ package notify
 import "github.com/algrvvv/monlog/internal/config"
 
 type Notification struct {
-	Server  *config.ServerConfig
-	Time    string
-	Level   string
+	// Server информация о сервере
+	Server *config.ServerConfig
+	// Time время из полученного лого
+	Time string
+	// Level уровень лога
+	Level string
+	// Message сообщение полученное из лога
 	Message string
-	Log     string
+	// Log полная строка лога
+	Log string
 }
 
 type NotificationSender interface {
-	// Send метод для отправки уведомления. Принимает сервер типа config.ServerConfig и само сообщение.
-	// Сервер нужен для того, чтобы оттуда достать данные для отправки, к примеру айди пользователей в тг.
+	// Send метод для отправки уведомления. Уже настроенный параметр для уведомлений, который в себе содежит в себе
+	// все данные. подробнее смотреть Notification
 	Send(notification *Notification) error
 }
