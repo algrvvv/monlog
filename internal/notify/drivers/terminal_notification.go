@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 
 	"github.com/algrvvv/monlog/internal/logger/log"
 	"github.com/algrvvv/monlog/internal/notify"
@@ -42,10 +43,10 @@ func NewTerminalNotifier() (notify.NotificationSender, error) {
 // Send метод, который отправляет уведомление через утилиту
 func (t *TerminalNotifier) Send(n *notify.Notification) error {
 	title := fmt.Sprintf("\"Уведомление (%s)\"", n.Server.Name)
-	message := fmt.Sprintf("\"[%s] %s\"", n.Level, n.Message)
+	message := fmt.Sprintf("[%s] %s", n.Level, n.Message)
 
 	args := []string{
-		"-title", title, "-message", message, "-timeout", "10",
+		"-title", title, "-message", strconv.Quote(message), "-timeout", "10",
 		"-sound", "Glass",
 	}
 
@@ -54,5 +55,6 @@ func (t *TerminalNotifier) Send(n *notify.Notification) error {
 		return err
 	}
 
+	log.PrintInfo("Terminal notifitcation sent")
 	return nil
 }
