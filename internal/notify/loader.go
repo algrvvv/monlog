@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/algrvvv/monlog/internal/config"
+	"github.com/algrvvv/monlog/internal/logger"
 )
 
 // структура ошибки с динамическим полем названия драйвера
@@ -13,6 +14,21 @@ type ErrDriverNotFound struct {
 
 func (e *ErrDriverNotFound) Error() string {
 	return "driver not found: " + e.driverName
+}
+
+// структура, которая будет заглушкой для драйверов, которые загружаются лениво
+type WaitingSender struct {
+	Name          string
+	Notifications []Notification
+}
+
+func (w *WaitingSender) Send(notification *Notification) error {
+	w.Notifications = append(w.Notifications, *notification)
+	return nil
+}
+
+func newWaitingSender(name string) *WaitingSender {
+	return &WaitingSender{Name: name}
 }
 
 type DriverFactory func() NotificationSender
@@ -40,11 +56,21 @@ func RegisterDriver(name string, lazyLoad bool, factory DriverFactory) {
 		nCh := make(chan struct{})
 
 		err := config.AddSubscriber(nCh)
+		// создаем и сохраняем заглушку
+		w := newWaitingSender(name)
 		if err == nil {
+			drivers[name] = w
 			<-nCh
 		}
 
 		drivers[name] = factory()
+
+		// проходимся по полученным уведомлениям и отправляем их
+		for _, n := range w.Notifications {
+			if err := Notify(&n); err != nil {
+				logger.Errorf("failed to send waiting message: %v", err)
+			}
+		}
 	}()
 }
 
